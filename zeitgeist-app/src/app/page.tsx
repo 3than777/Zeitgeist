@@ -40,7 +40,7 @@ const DummyContent = () => {
               </span>{" "}
               Keep a journal, quickly jot down a grocery list, and take amazing
               class notes. Want to convert those notes to text? No problem.
-              Ultrathink's handwriting recognition is incredible.
+              Ultrathink&apos;s handwriting recognition is incredible.
             </p>
             <Image
               src="https://assets.aceternity.com/macbook.png"
