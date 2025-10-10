@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd zeitgeist-app && npm run build",
+  "outputDirectory": "zeitgeist-app/.next",
+  "installCommand": "cd zeitgeist-app && npm install",
+  "framework": "nextjs"
+}
