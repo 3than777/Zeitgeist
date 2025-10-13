@@ -13,7 +13,7 @@ const openai = new OpenAI({
 });
 
 // Get the model from environment or default to GPT-4
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4-turbo-preview';
+const MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error('OPENAI_API_KEY environment variable is required');
@@ -230,22 +230,33 @@ export async function analyzeStockData(
   } catch (error) {
     console.error('Error in OpenAI stock analysis:', error);
     
-    // Handle specific OpenAI API errors
+    // Handle specific OpenAI API errors with detailed logging
+    let errorMessage = 'Unknown error occurred during analysis';
+    
     if (error instanceof Error) {
-      if (error.message.includes('401')) {
-        throw new Error('Invalid OpenAI API key');
+      console.log(`OpenAI API Error Details: ${error.message}`);
+      
+      if (error.message.includes('401') || error.message.includes('Invalid API key')) {
+        errorMessage = 'Invalid OpenAI API key - please check your API key configuration';
       } else if (error.message.includes('403')) {
-        throw new Error('OpenAI API access forbidden - check your subscription');
-      } else if (error.message.includes('429')) {
-        throw new Error('OpenAI API rate limit exceeded - please try again later');
-      } else if (error.message.includes('quota')) {
-        throw new Error('OpenAI API quota exceeded - check your billing');
+        errorMessage = 'OpenAI API access forbidden - check your subscription and permissions';
+      } else if (error.message.includes('429') || error.message.includes('rate limit')) {
+        errorMessage = 'OpenAI API rate limit exceeded - please try again in a few moments';
+      } else if (error.message.includes('quota') || error.message.includes('billing')) {
+        errorMessage = 'OpenAI API quota exceeded - check your billing and usage limits';
       } else if (error.message.includes('timeout')) {
-        throw new Error('OpenAI API request timed out - please try again');
+        errorMessage = 'OpenAI API request timed out - please try again';
+      } else if (error.message.includes('model') || error.message.includes('does not exist')) {
+        errorMessage = `OpenAI model "${MODEL}" not available - please update model configuration`;
+      } else if (error.message.includes('Invalid JSON')) {
+        errorMessage = 'OpenAI returned invalid response format - retrying may help';
+      } else {
+        errorMessage = `OpenAI API error: ${error.message}`;
       }
     }
     
-    throw new Error(`Failed to analyze stock data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.warn(`Falling back to basic analysis due to: ${errorMessage}`);
+    throw new Error(errorMessage);
   }
 }
 
@@ -283,63 +294,11 @@ export function checkTokenLimits(prompt: string, maxTokens: number = 4000): { wi
 }
 
 /**
- * Creates a quick analysis for when full analysis fails
+ * DO NOT USE - Fallback analysis removed to prevent misleading users
+ * This function has been removed to ensure transparency when AI analysis is unavailable
  */
-export function createFallbackAnalysis(stockData: StockData): StockAnalysis {
-  const isPositive = stockData.change >= 0;
-  
-  return {
-    ticker: stockData.ticker,
-    company_name: stockData.name,
-    analysis_timestamp: new Date().toISOString(),
-    model_used: 'fallback',
-    
-    summary: `${stockData.ticker} is currently trading at $${stockData.price.toFixed(2)}, ${isPositive ? 'up' : 'down'} ${Math.abs(stockData.change_percent).toFixed(2)}% from the previous close.`,
-    recommendation: 'HOLD',
-    confidence_score: 30,
-    
-    technical_analysis: {
-      trend: isPositive ? 'BULLISH' : 'BEARISH',
-      support_levels: [stockData.low * 0.95],
-      resistance_levels: [stockData.high * 1.05],
-      key_indicators: 'Analysis unavailable - please try again later',
-      short_term_outlook: 'Unable to provide detailed technical analysis'
-    },
-    
-    fundamental_analysis: {
-      valuation: 'FAIRLY_VALUED',
-      financial_health: 'Analysis unavailable',
-      growth_prospects: 'Analysis unavailable',
-      competitive_position: 'Analysis unavailable'
-    },
-    
-    sentiment_analysis: {
-      market_sentiment: 'NEUTRAL',
-      news_sentiment: 'Analysis unavailable'
-    },
-    
-    risk_factors: ['Analysis temporarily unavailable'],
-    risk_level: 'MEDIUM',
-    
-    price_targets: {
-      short_term: stockData.price * 1.02,
-      medium_term: stockData.price * 1.05,
-      long_term: stockData.price * 1.08
-    },
-    
-    key_metrics: {
-      pe_ratio: null,
-      market_cap: stockData.market_cap || null,
-      revenue_growth: null,
-      profit_margin: null
-    },
-    
-    catalysts: [],
-    concerns: ['Analysis temporarily unavailable'],
-    comparable_companies: [],
-    
-    raw_analysis: 'Detailed analysis is temporarily unavailable. Please try again later for a comprehensive analysis.'
-  };
+export function createFallbackAnalysis(stockData: StockData): never {
+  throw new Error('AI analysis service unavailable - fallback analysis disabled to prevent misleading users');
 }
 
 /**

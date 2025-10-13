@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { 
   getCompleteStockInfo, 
   getStockHistory, 
-  validateStockTicker,
   createAPIError 
 } from '../../../lib/polygon';
+import { validateStockTicker } from '../../../lib/stock-utils';
 import { 
   analyzeStockData,
   createFallbackAnalysis,
@@ -27,7 +27,6 @@ interface StockAnalysisRequestBody {
     include_history?: boolean;
     days_history?: number;
     analysis_options?: {
-      include_fallback?: boolean;
       max_retries?: number;
     };
   };
@@ -67,10 +66,6 @@ function validateStockAnalysisRequest(body: any): { isValid: boolean; error?: st
   if (options.analysis_options) {
     const analysisOpts = options.analysis_options;
     
-    if (analysisOpts.include_fallback !== undefined && typeof analysisOpts.include_fallback !== 'boolean') {
-      return { isValid: false, error: 'options.analysis_options.include_fallback must be a boolean if provided' };
-    }
-    
     if (analysisOpts.max_retries !== undefined) {
       if (typeof analysisOpts.max_retries !== 'number' || analysisOpts.max_retries < 0 || analysisOpts.max_retries > 3) {
         return { isValid: false, error: 'options.analysis_options.max_retries must be a number between 0 and 3 if provided' };
@@ -86,7 +81,6 @@ function validateStockAnalysisRequest(body: any): { isValid: boolean; error?: st
         include_history: options.include_history ?? true,
         days_history: options.days_history ?? 30,
         analysis_options: {
-          include_fallback: options.analysis_options?.include_fallback ?? true,
           max_retries: options.analysis_options?.max_retries ?? 1
         }
       }
@@ -105,7 +99,6 @@ function validateStockAnalysisRequest(body: any): { isValid: boolean; error?: st
  *     "include_history": boolean (default: true),
  *     "days_history": number (default: 30, max: 90),
  *     "analysis_options": {
- *       "include_fallback": boolean (default: true),
  *       "max_retries": number (default: 1, max: 3)
  *     }
  *   }
@@ -225,7 +218,6 @@ export async function POST(request: NextRequest) {
     try {
       const analysisStartTime = Date.now();
       const maxRetries = options.analysis_options!.max_retries!;
-      const includeFallback = options.analysis_options!.include_fallback!;
       
       let attempt = 0;
       
@@ -239,14 +231,8 @@ export async function POST(request: NextRequest) {
           console.warn(`[Stock Analysis API] Analysis attempt ${attempt} failed for ${ticker}:`, analysisError);
           
           if (attempt > maxRetries) {
-            // If all retries failed, use fallback or return error
-            if (includeFallback) {
-              console.log(`[Stock Analysis API] Using fallback analysis for ${ticker}`);
-              analysis = createFallbackAnalysis(stockData);
-              break;
-            } else {
-              throw analysisError;
-            }
+            // All retries failed - return error without fallback
+            throw analysisError;
           }
           
           // Wait before retry (exponential backoff)
@@ -262,34 +248,41 @@ export async function POST(request: NextRequest) {
     } catch (analysisError) {
       console.error(`[Stock Analysis API] Analysis failed for ${ticker}:`, analysisError);
       
-      // Return error response for analysis failure
-      let statusCode = 500;
-      let errorMessage = 'Failed to analyze stock data';
+      // Return partial success - stock data without analysis
+      let statusCode = 200;
+      let errorMessage = 'AI analysis unavailable';
       
       if (analysisError instanceof Error) {
         errorMessage = analysisError.message;
-        
-        if (errorMessage.includes('API key')) {
-          statusCode = 401;
-        } else if (errorMessage.includes('rate limit') || errorMessage.includes('quota')) {
-          statusCode = 429;
-        } else if (errorMessage.includes('timeout')) {
-          statusCode = 408;
-        }
       }
 
-      const error: StockAPIError = {
-        error: 'ANALYSIS_FAILED',
-        message: errorMessage,
-        status_code: statusCode,
-        details: `Failed to analyze ${ticker} - stock data was fetched successfully but analysis failed`
+      console.log(`[Stock Analysis API] Returning stock data without analysis for ${ticker}`);
+
+      // Return stock data but indicate analysis failure
+      const response = {
+        success: true,
+        data: {
+          stock_data: stockData,
+          company_details: companyDetails,
+          ...(priceHistory && { price_history: priceHistory }),
+          analysis_error: {
+            error: 'AI_ANALYSIS_UNAVAILABLE',
+            message: errorMessage,
+            details: 'Stock data retrieved successfully but AI analysis failed'
+          }
+        },
+        timestamp: new Date().toISOString()
       };
 
-      return NextResponse.json({
-        success: false,
-        error,
-        timestamp: new Date().toISOString()
-      } as StockAnalysisResponse, { status: statusCode });
+      return NextResponse.json(response, { 
+        status: statusCode,
+        headers: {
+          'Cache-Control': 'private, max-age=60', // Shorter cache for partial data
+          'X-Response-Time': `${Date.now() - startTime}ms`,
+          'X-Data-Fetch-Time': `${dataFetchTime}ms`,
+          'X-Analysis-Status': 'failed'
+        }
+      });
     }
 
     // Phase 3: Return combined results

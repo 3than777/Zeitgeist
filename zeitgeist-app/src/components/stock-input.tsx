@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Search, TrendingUp, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { validateStockTicker } from '@/lib/polygon';
+import { validateStockTicker } from '@/lib/stock-utils';
 
 // Popular stock symbols for auto-complete suggestions
 const POPULAR_STOCKS = [

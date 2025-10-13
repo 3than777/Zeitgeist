@@ -1,5 +1,5 @@
-import { ShootingStarsAndStarsBackgroundDemo } from "@/src/components/shooting-stars-background-demo";
-import { Carousel, Card } from "@/src/components/ui/apple-cards-carousel";
+import { ShootingStarsAndStarsBackgroundDemo } from "@/components/shooting-stars-background-demo";
+import { Carousel, Card } from "@/components/ui/apple-cards-carousel";
 import Navigation from "@/components/navigation";
 import Image from "next/image";
 import Link from "next/link";

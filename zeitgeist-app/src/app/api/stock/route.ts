@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { 
   getCompleteStockInfo, 
   getStockHistory, 
-  validateStockTicker,
   createAPIError 
 } from '../../../lib/polygon';
+import { validateStockTicker } from '../../../lib/stock-utils';
 import { 
   StockData, 
   CompanyDetails, 
