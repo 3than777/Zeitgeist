@@ -8,8 +8,8 @@ import { validateStockTicker } from '../../../lib/stock-utils';
 import { 
   analyzeStockData,
   createFallbackAnalysis,
-  createOpenAIError
-} from '../../../lib/openai';
+  createAnthropicError
+} from '../../../lib/anthropic';
 import { 
   StockData, 
   CompanyDetails, 
@@ -35,23 +35,25 @@ interface StockAnalysisRequestBody {
 /**
  * Validates the request body structure
  */
-function validateStockAnalysisRequest(body: any): { isValid: boolean; error?: string; data?: StockAnalysisRequestBody } {
+function validateStockAnalysisRequest(body: unknown): { isValid: boolean; error?: string; data?: StockAnalysisRequestBody } {
   if (!body || typeof body !== 'object') {
     return { isValid: false, error: 'Request body must be a JSON object' };
   }
 
-  if (!body.ticker || typeof body.ticker !== 'string') {
+  const bodyObj = body as Record<string, unknown>;
+
+  if (!bodyObj.ticker || typeof bodyObj.ticker !== 'string') {
     return { isValid: false, error: 'ticker is required and must be a string' };
   }
 
   // Validate ticker format
-  const tickerValidation = validateStockTicker(body.ticker);
+  const tickerValidation = validateStockTicker(bodyObj.ticker as string);
   if (!tickerValidation.isValid) {
     return { isValid: false, error: tickerValidation.error };
   }
 
   // Validate optional parameters
-  const options = body.options || {};
+  const options = bodyObj.options as Record<string, unknown> || {};
   
   if (options.include_history !== undefined && typeof options.include_history !== 'boolean') {
     return { isValid: false, error: 'options.include_history must be a boolean if provided' };
@@ -64,7 +66,7 @@ function validateStockAnalysisRequest(body: any): { isValid: boolean; error?: st
   }
 
   if (options.analysis_options) {
-    const analysisOpts = options.analysis_options;
+    const analysisOpts = options.analysis_options as Record<string, unknown>;
     
     if (analysisOpts.max_retries !== undefined) {
       if (typeof analysisOpts.max_retries !== 'number' || analysisOpts.max_retries < 0 || analysisOpts.max_retries > 3) {
@@ -81,7 +83,7 @@ function validateStockAnalysisRequest(body: any): { isValid: boolean; error?: st
         include_history: options.include_history ?? true,
         days_history: options.days_history ?? 30,
         analysis_options: {
-          max_retries: options.analysis_options?.max_retries ?? 1
+          max_retries: (options.analysis_options as Record<string, unknown>)?.max_retries as number ?? 1
         }
       }
     }
@@ -111,10 +113,10 @@ export async function POST(request: NextRequest) {
   
   try {
     // Parse request body
-    let requestBody: any;
+    let requestBody: unknown;
     try {
       requestBody = await request.json();
-    } catch (parseError) {
+    } catch {
       const error: StockAPIError = {
         error: 'INVALID_JSON',
         message: 'Request body must be valid JSON',
@@ -149,7 +151,7 @@ export async function POST(request: NextRequest) {
     const { ticker, options } = validation.data!;
     
     // Log the combined analysis request
-    console.log(`[Stock Analysis API] Starting combined analysis for ${ticker}, history: ${options.include_history}, days: ${options.days_history}`);
+    console.log(`[Stock Analysis API] Starting combined analysis for ${ticker}, history: ${options?.include_history}, days: ${options?.days_history}`);
 
     // Phase 1: Fetch stock data from Polygon.io
     let stockData: StockData;
@@ -165,9 +167,9 @@ export async function POST(request: NextRequest) {
       companyDetails = fetchedCompanyDetails;
       
       // Fetch price history if requested
-      if (options.include_history) {
+      if (options?.include_history) {
         try {
-          priceHistory = await getStockHistory(ticker, options.days_history);
+          priceHistory = await getStockHistory(ticker, options?.days_history || 30);
         } catch (historyError) {
           console.warn(`[Stock Analysis API] Failed to fetch history for ${ticker}:`, historyError);
           priceHistory = undefined;
@@ -217,7 +219,7 @@ export async function POST(request: NextRequest) {
     
     try {
       const analysisStartTime = Date.now();
-      const maxRetries = options.analysis_options!.max_retries!;
+      const maxRetries = (options?.analysis_options as Record<string, unknown>)?.max_retries as number || 1;
       
       let attempt = 0;
       
@@ -249,7 +251,7 @@ export async function POST(request: NextRequest) {
       console.error(`[Stock Analysis API] Analysis failed for ${ticker}:`, analysisError);
       
       // Return partial success - stock data without analysis
-      let statusCode = 200;
+      const statusCode = 200;
       let errorMessage = 'AI analysis unavailable';
       
       if (analysisError instanceof Error) {

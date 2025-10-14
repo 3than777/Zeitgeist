@@ -541,7 +541,7 @@ const StockAnalysisContent = () => {
       {/* Disclaimer */}
       <div className="mt-6 text-center">
         <p className="text-xs text-neutral-500 dark:text-neutral-400">
-          * Not financial advice. Data provided by Polygon.io. Analysis powered by OpenAI.
+          * Not financial advice. Data provided by Polygon.io. Analysis powered by Claude.
         </p>
       </div>
     </div>

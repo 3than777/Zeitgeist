@@ -140,7 +140,7 @@ export async function getStockHistory(ticker: string, days: number = 30): Promis
     }
 
     // Transform the data to match our interface
-    const priceData: StockPriceData[] = response.data.results.map((item: any) => ({
+    const priceData: StockPriceData[] = response.data.results.map((item: {o: number; h: number; l: number; c: number; v: number; t: number; vw: number; n?: number}) => ({
       open: item.o,
       high: item.h,
       low: item.l,

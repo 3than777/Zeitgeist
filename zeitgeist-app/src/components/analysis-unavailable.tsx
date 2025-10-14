@@ -17,8 +17,8 @@ export function AnalysisUnavailable({
   onRetry, 
   className 
 }: AnalysisUnavailableProps) {
-  const isQuotaError = error.includes('quota') || error.includes('billing');
-  const isRateLimitError = error.includes('rate limit');
+  const isQuotaError = error.includes('quota') || error.includes('billing') || error.includes('insufficient_quota');
+  const isRateLimitError = error.includes('rate limit') && !isQuotaError; // Don't show rate limit if it's actually a quota error
   const isAPIKeyError = error.includes('API key') || error.includes('401');
 
   return (
@@ -44,7 +44,7 @@ export function AnalysisUnavailable({
             <div className="space-y-2">
               <h4 className="font-medium text-sm">Service Status</h4>
               <p className="text-sm text-muted-foreground">
-                {isQuotaError && "OpenAI API quota has been exceeded. Please check billing and usage limits."}
+                {isQuotaError && "Anthropic API quota has been exceeded. Please check billing and usage limits."}
                 {isRateLimitError && "Rate limit exceeded. Please wait a few moments before trying again."}
                 {isAPIKeyError && "Invalid or missing API key configuration."}
                 {!isQuotaError && !isRateLimitError && !isAPIKeyError && "AI analysis service is currently unavailable."}
@@ -66,7 +66,7 @@ export function AnalysisUnavailable({
         {/* What's Available */}
         <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
           <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100 mb-2">
-            What's Still Available
+            What&apos;s Still Available
           </h4>
           <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
             <li>• Real-time stock price and market data</li>
@@ -102,13 +102,13 @@ export function AnalysisUnavailable({
           )}
           
           <a
-            href="https://platform.openai.com/account/usage"
+            href="https://console.anthropic.com/settings/usage"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-4 py-2 border border-border rounded-md hover:bg-accent hover:text-accent-foreground transition-colors text-sm"
           >
             <ExternalLink className="h-4 w-4" />
-            Check OpenAI Usage
+            Check Anthropic Usage
           </a>
         </div>
       </div>

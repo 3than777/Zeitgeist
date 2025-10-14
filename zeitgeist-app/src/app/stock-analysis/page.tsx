@@ -191,7 +191,7 @@ export default function StockAnalysisPage() {
               </p>
               <div className="flex items-center space-x-4 mt-4 md:mt-0">
                 <p className="text-xs text-muted-foreground">
-                  Data provided by Polygon.io • Analysis by OpenAI • Not financial advice
+                  Data provided by Polygon.io • Analysis by Claude • Not financial advice
                 </p>
               </div>
             </div>

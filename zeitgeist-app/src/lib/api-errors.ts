@@ -10,7 +10,7 @@ export const ERROR_TYPES = {
   
   // API service errors
   POLYGON_API_ERROR: 'POLYGON_API_ERROR',
-  OPENAI_API_ERROR: 'OPENAI_API_ERROR',
+  ANTHROPIC_API_ERROR: 'ANTHROPIC_API_ERROR',
   DATA_FETCH_ERROR: 'DATA_FETCH_ERROR',
   ANALYSIS_FAILED: 'ANALYSIS_FAILED',
   
@@ -110,13 +110,34 @@ export class ServiceUnavailableError extends APIError {
   }
 }
 
+export class QuotaExceededError extends APIError {
+  constructor(service: string) {
+    super(
+      ERROR_TYPES.RATE_LIMIT_ERROR, // We'll use the same error type but with a different message
+      `${service} quota exceeded - check your billing and usage limits`,
+      429,
+      `API usage quota has been exceeded for ${service}. Please check your billing and usage limits.`,
+      false // Quota errors are not automatically retryable
+    );
+    this.name = 'QuotaExceededError';
+  }
+}
+
 // Rate limiting detection patterns
 const RATE_LIMIT_PATTERNS = [
   /rate limit/i,
   /too many requests/i,
-  /quota.*exceeded/i,
   /throttl/i,
   /requests per/i
+];
+
+// Quota/billing detection patterns (more specific than rate limits)
+const QUOTA_EXCEEDED_PATTERNS = [
+  /quota.*exceeded/i,
+  /insufficient_quota/i,
+  /billing/i,
+  /plan and billing/i,
+  /usage limit/i
 ];
 
 const AUTH_ERROR_PATTERNS = [
@@ -142,9 +163,22 @@ const NOT_FOUND_PATTERNS = [
 ];
 
 /**
+ * Detects if an error indicates quota exceeded (more specific than rate limiting)
+ */
+export function isQuotaExceededError(error: Error | string, statusCode?: number): boolean {
+  const message = typeof error === 'string' ? error : error.message;
+  return QUOTA_EXCEEDED_PATTERNS.some(pattern => pattern.test(message));
+}
+
+/**
  * Detects if an error indicates rate limiting
  */
 export function isRateLimitError(error: Error | string, statusCode?: number): boolean {
+  // First check if it's a quota error - those take precedence
+  if (isQuotaExceededError(error, statusCode)) {
+    return false;
+  }
+  
   if (statusCode === 429) return true;
   
   const message = typeof error === 'string' ? error : error.message;
@@ -210,6 +244,10 @@ export function isRetryableError(error: Error | APIError | string, statusCode?: 
 export function classifyError(error: Error | string, statusCode?: number, service?: string): APIError {
   const message = typeof error === 'string' ? error : error.message;
   const actualStatusCode = statusCode || 500;
+  
+  if (isQuotaExceededError(error, statusCode)) {
+    return new QuotaExceededError(service || 'API');
+  }
   
   if (isRateLimitError(error, statusCode)) {
     return new RateLimitError(service || 'API');
@@ -298,7 +336,7 @@ export async function withRetry<T>(
   context?: string
 ): Promise<T> {
   const fullConfig = { ...DEFAULT_RETRY_CONFIG, ...config };
-  let lastError: Error;
+  let lastError: Error = new Error('Unknown error');
   
   for (let attempt = 0; attempt <= fullConfig.maxRetries; attempt++) {
     try {

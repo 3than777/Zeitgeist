@@ -1,4 +1,4 @@
-import { OpenAI } from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { 
   StockData, 
   CompanyDetails, 
@@ -7,17 +7,58 @@ import {
   StockAPIError 
 } from '@/types/stock';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Get the model from environment or default to GPT-4
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
-
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('OPENAI_API_KEY environment variable is required');
+// Interface for parsed analysis data from Claude
+interface ParsedAnalysisData {
+  ticker?: string;
+  company_name?: string;
+  analysis_timestamp?: string;
+  model_used?: string;
+  summary?: string;
+  recommendation?: string;
+  confidence_score?: number;
+  technical_analysis?: {
+    trend?: string;
+    support_levels?: number[];
+    resistance_levels?: number[];
+    key_indicators?: string;
+    short_term_outlook?: string;
+  };
+  fundamental_analysis?: {
+    valuation?: string;
+    financial_health?: string;
+    growth_prospects?: string;
+    competitive_position?: string;
+  };
+  sentiment_analysis?: {
+    market_sentiment?: string;
+    news_sentiment?: string;
+  };
+  risk_factors?: string[];
+  risk_level?: string;
+  price_targets?: {
+    short_term?: number;
+    medium_term?: number;
+    long_term?: number;
+  };
+  key_metrics?: {
+    pe_ratio?: number;
+    market_cap?: number;
+    revenue_growth?: number;
+    profit_margin?: number;
+  };
+  catalysts?: string[];
+  concerns?: string[];
+  comparable_companies?: string[];
+  raw_analysis?: string;
 }
+
+// Anthropic client will be initialized when needed
+
+// Get the model from environment or default to Claude Sonnet 4.5
+const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929';
+
+// Note: API key validation is done at runtime in the API routes
+// to allow builds to succeed without environment variables
 
 /**
  * Creates a comprehensive prompt for stock analysis
@@ -67,7 +108,8 @@ Please provide a structured analysis that includes:
 6. **Investment Recommendation**: One of: STRONG_BUY, BUY, HOLD, SELL, STRONG_SELL
 
 **Response Format:**
-Please respond with a JSON object that matches this exact structure:
+Please respond with ONLY a JSON object that matches this exact structure. Do not include any additional text before or after the JSON:
+
 {
   "ticker": "${stockData.ticker}",
   "company_name": "${stockData.name}",
@@ -78,8 +120,8 @@ Please respond with a JSON object that matches this exact structure:
   "confidence_score": 75,
   "technical_analysis": {
     "trend": "BULLISH|BEARISH|NEUTRAL",
-    "support_levels": [price1, price2],
-    "resistance_levels": [price1, price2],
+    "support_levels": [150.00, 145.00],
+    "resistance_levels": [160.00, 165.00],
     "key_indicators": "Description of technical indicators",
     "short_term_outlook": "Short-term technical outlook"
   },
@@ -102,7 +144,7 @@ Please respond with a JSON object that matches this exact structure:
   },
   "key_metrics": {
     "pe_ratio": null,
-    "market_cap": ${companyDetails?.market_cap || null},
+    "market_cap": null,
     "revenue_growth": null,
     "profit_margin": null
   },
@@ -116,7 +158,7 @@ Ensure all numerical values are realistic and based on the provided data. The co
 }
 
 /**
- * Analyzes stock data using OpenAI GPT-5
+ * Analyzes stock data using Anthropic Claude Sonnet 4.5
  */
 export async function analyzeStockData(
   stockData: StockData,
@@ -124,54 +166,77 @@ export async function analyzeStockData(
   priceHistory?: StockPriceData[]
 ): Promise<StockAnalysis> {
   try {
+    // Initialize Anthropic client
+    if (!process.env.ANTHROPIC_API_KEY) {
+      throw new Error('ANTHROPIC_API_KEY environment variable is required');
+    }
+    
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      timeout: 60000, // 60 second timeout to prevent long hangs
+    });
+    
     const prompt = createStockAnalysisPrompt(stockData, companyDetails, priceHistory);
     
-    // Make the API call to OpenAI
-    const completion = await openai.chat.completions.create({
+    // Make the API call to Anthropic Claude
+    const completion = await anthropic.messages.create({
       model: MODEL,
+      max_tokens: 4000,
+      temperature: 0.1, // Very low temperature for consistent JSON formatting
+      system: 'You are a professional financial analyst. Provide accurate, objective stock analysis based on the data provided. CRITICAL: You must respond with ONLY valid JSON in the exact format requested. Do not include any text before or after the JSON object. Do not use markdown code blocks.',
       messages: [
-        {
-          role: 'system',
-          content: 'You are a professional financial analyst. Provide accurate, objective stock analysis based on the data provided. Always respond with valid JSON in the exact format requested.'
-        },
         {
           role: 'user',
           content: prompt
         }
-      ],
-      max_tokens: 3000,
-      temperature: 0.3, // Lower temperature for more consistent, factual analysis
-      response_format: { type: 'json_object' }
+      ]
     });
 
-    const responseContent = completion.choices[0]?.message?.content;
+    const responseContent = completion.content[0];
     
-    if (!responseContent) {
-      throw new Error('No response content received from OpenAI');
+    if (!responseContent || responseContent.type !== 'text') {
+      throw new Error('No response content received from Anthropic');
     }
 
     // Parse the JSON response
-    let analysisData: any;
+    let analysisData: ParsedAnalysisData;
     try {
-      analysisData = JSON.parse(responseContent);
+      // Clean the response text - sometimes AI adds markdown code blocks
+      let cleanedResponse = responseContent.text.trim();
+      
+      // Remove markdown code blocks if present
+      if (cleanedResponse.startsWith('```json')) {
+        cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleanedResponse.startsWith('```')) {
+        cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      // Try to find JSON within the response if there's extra text
+      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanedResponse = jsonMatch[0];
+      }
+      
+      analysisData = JSON.parse(cleanedResponse) as ParsedAnalysisData;
     } catch (parseError) {
-      console.error('Failed to parse OpenAI response as JSON:', responseContent);
-      throw new Error('Invalid JSON response from OpenAI API');
+      console.error('Failed to parse Anthropic response as JSON. Raw response:', responseContent.text);
+      console.error('Parse error:', parseError);
+      throw new Error('Invalid JSON response from Anthropic API');
     }
 
     // Validate and structure the response
     const analysis: StockAnalysis = {
-      ticker: analysisData.ticker || stockData.ticker,
-      company_name: analysisData.company_name || stockData.name,
-      analysis_timestamp: analysisData.analysis_timestamp || new Date().toISOString(),
-      model_used: analysisData.model_used || MODEL,
+      ticker: (analysisData.ticker as string) || stockData.ticker,
+      company_name: (analysisData.company_name as string) || stockData.name,
+      analysis_timestamp: (analysisData.analysis_timestamp as string) || new Date().toISOString(),
+      model_used: (analysisData.model_used as string) || MODEL,
       
-      summary: analysisData.summary || 'Analysis summary not available',
-      recommendation: analysisData.recommendation || 'HOLD',
-      confidence_score: Math.min(100, Math.max(0, analysisData.confidence_score || 50)),
+      summary: (analysisData.summary as string) || 'Analysis summary not available',
+      recommendation: (analysisData.recommendation as 'STRONG_BUY' | 'BUY' | 'HOLD' | 'SELL' | 'STRONG_SELL') || 'HOLD',
+      confidence_score: Math.min(100, Math.max(0, (analysisData.confidence_score as number) || 50)),
       
       technical_analysis: {
-        trend: analysisData.technical_analysis?.trend || 'NEUTRAL',
+        trend: (analysisData.technical_analysis?.trend as 'BULLISH' | 'BEARISH' | 'NEUTRAL') || 'NEUTRAL',
         support_levels: Array.isArray(analysisData.technical_analysis?.support_levels) 
           ? analysisData.technical_analysis.support_levels.slice(0, 3)
           : [],
@@ -183,21 +248,21 @@ export async function analyzeStockData(
       },
       
       fundamental_analysis: {
-        valuation: analysisData.fundamental_analysis?.valuation || 'FAIRLY_VALUED',
+        valuation: (analysisData.fundamental_analysis?.valuation as 'UNDERVALUED' | 'FAIRLY_VALUED' | 'OVERVALUED') || 'FAIRLY_VALUED',
         financial_health: analysisData.fundamental_analysis?.financial_health || 'Assessment not available',
         growth_prospects: analysisData.fundamental_analysis?.growth_prospects || 'Growth prospects unclear',
         competitive_position: analysisData.fundamental_analysis?.competitive_position || 'Position assessment not available'
       },
       
       sentiment_analysis: {
-        market_sentiment: analysisData.sentiment_analysis?.market_sentiment || 'NEUTRAL',
+        market_sentiment: (analysisData.sentiment_analysis?.market_sentiment as 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL') || 'NEUTRAL',
         news_sentiment: analysisData.sentiment_analysis?.news_sentiment || 'Sentiment analysis not available'
       },
       
       risk_factors: Array.isArray(analysisData.risk_factors) 
-        ? analysisData.risk_factors.slice(0, 5)
+        ? (analysisData.risk_factors as string[]).slice(0, 5)
         : ['Market volatility', 'Economic uncertainty'],
-      risk_level: analysisData.risk_level || 'MEDIUM',
+      risk_level: (analysisData.risk_level as 'LOW' | 'MEDIUM' | 'HIGH') || 'MEDIUM',
       
       price_targets: {
         short_term: analysisData.price_targets?.short_term || stockData.price * 1.05,
@@ -206,52 +271,52 @@ export async function analyzeStockData(
       },
       
       key_metrics: {
-        pe_ratio: analysisData.key_metrics?.pe_ratio || null,
-        market_cap: analysisData.key_metrics?.market_cap || companyDetails?.market_cap || null,
-        revenue_growth: analysisData.key_metrics?.revenue_growth || null,
-        profit_margin: analysisData.key_metrics?.profit_margin || null
+        pe_ratio: analysisData.key_metrics?.pe_ratio || undefined,
+        market_cap: analysisData.key_metrics?.market_cap || companyDetails?.market_cap || undefined,
+        revenue_growth: analysisData.key_metrics?.revenue_growth || undefined,
+        profit_margin: analysisData.key_metrics?.profit_margin || undefined
       },
       
       catalysts: Array.isArray(analysisData.catalysts) 
-        ? analysisData.catalysts.slice(0, 5)
+        ? (analysisData.catalysts as string[]).slice(0, 5)
         : [],
       concerns: Array.isArray(analysisData.concerns)
-        ? analysisData.concerns.slice(0, 5)
+        ? (analysisData.concerns as string[]).slice(0, 5)
         : [],
       comparable_companies: Array.isArray(analysisData.comparable_companies)
-        ? analysisData.comparable_companies.slice(0, 5)
+        ? (analysisData.comparable_companies as string[]).slice(0, 5)
         : [],
       
-      raw_analysis: analysisData.raw_analysis || analysisData.summary || 'Detailed analysis not available'
+      raw_analysis: (analysisData.raw_analysis as string) || (analysisData.summary as string) || 'Detailed analysis not available'
     };
 
     return analysis;
     
   } catch (error) {
-    console.error('Error in OpenAI stock analysis:', error);
+    console.error('Error in Anthropic stock analysis:', error);
     
-    // Handle specific OpenAI API errors with detailed logging
+    // Handle specific Anthropic API errors with detailed logging
     let errorMessage = 'Unknown error occurred during analysis';
     
     if (error instanceof Error) {
-      console.log(`OpenAI API Error Details: ${error.message}`);
+      console.log(`Anthropic API Error Details: ${error.message}`);
       
       if (error.message.includes('401') || error.message.includes('Invalid API key')) {
-        errorMessage = 'Invalid OpenAI API key - please check your API key configuration';
+        errorMessage = 'Invalid Anthropic API key - please check your API key configuration';
       } else if (error.message.includes('403')) {
-        errorMessage = 'OpenAI API access forbidden - check your subscription and permissions';
+        errorMessage = 'Anthropic API access forbidden - check your subscription and permissions';
       } else if (error.message.includes('429') || error.message.includes('rate limit')) {
-        errorMessage = 'OpenAI API rate limit exceeded - please try again in a few moments';
+        errorMessage = 'Anthropic API rate limit exceeded - please try again in a few moments';
       } else if (error.message.includes('quota') || error.message.includes('billing')) {
-        errorMessage = 'OpenAI API quota exceeded - check your billing and usage limits';
+        errorMessage = 'Anthropic API quota exceeded - check your billing and usage limits';
       } else if (error.message.includes('timeout')) {
-        errorMessage = 'OpenAI API request timed out - please try again';
+        errorMessage = 'Anthropic API request timed out - please try again';
       } else if (error.message.includes('model') || error.message.includes('does not exist')) {
-        errorMessage = `OpenAI model "${MODEL}" not available - please update model configuration`;
+        errorMessage = `Anthropic model "${MODEL}" not available - please update model configuration`;
       } else if (error.message.includes('Invalid JSON')) {
-        errorMessage = 'OpenAI returned invalid response format - retrying may help';
+        errorMessage = 'Anthropic returned invalid response format - retrying may help';
       } else {
-        errorMessage = `OpenAI API error: ${error.message}`;
+        errorMessage = `Anthropic API error: ${error.message}`;
       }
     }
     
@@ -261,15 +326,28 @@ export async function analyzeStockData(
 }
 
 /**
- * Validates OpenAI API configuration
+ * Validates Anthropic API configuration
  */
-export async function validateOpenAIConfig(): Promise<boolean> {
+export async function validateAnthropicConfig(): Promise<boolean> {
   try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return false;
+    }
+    
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      timeout: 60000, // 60 second timeout to prevent long hangs
+    });
+    
     // Make a minimal API call to test configuration
-    const response = await openai.models.list();
-    return response.data.length > 0;
+    const response = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 10,
+      messages: [{ role: 'user', content: 'Test' }]
+    });
+    return response.content.length > 0;
   } catch (error) {
-    console.error('OpenAI configuration validation failed:', error);
+    console.error('Anthropic configuration validation failed:', error);
     return false;
   }
 }
@@ -297,16 +375,16 @@ export function checkTokenLimits(prompt: string, maxTokens: number = 4000): { wi
  * DO NOT USE - Fallback analysis removed to prevent misleading users
  * This function has been removed to ensure transparency when AI analysis is unavailable
  */
-export function createFallbackAnalysis(stockData: StockData): never {
+export function createFallbackAnalysis(): never {
   throw new Error('AI analysis service unavailable - fallback analysis disabled to prevent misleading users');
 }
 
 /**
  * Utility function to create API error objects
  */
-export function createOpenAIError(message: string, statusCode?: number): StockAPIError {
+export function createAnthropicError(message: string, statusCode?: number): StockAPIError {
   return {
-    error: 'OPENAI_API_ERROR',
+    error: 'ANTHROPIC_API_ERROR',
     message,
     status_code: statusCode,
     details: 'Error occurred while analyzing stock data with AI'

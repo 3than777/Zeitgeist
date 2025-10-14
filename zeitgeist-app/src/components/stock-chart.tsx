@@ -63,18 +63,19 @@ const formatVolume = (value: number) => {
 };
 
 // Custom tooltip component
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload }: {active?: boolean; payload?: Array<{payload: StockPriceData}>; label?: string}) => {
   if (!active || !payload || !payload.length) return null;
 
   const data = payload[0].payload;
-  const isPositive = data.change >= 0;
+  // For now, assume positive change (we don't have previous day data to calculate change)
+  const isPositive = true;
 
   return (
     <div className="bg-popover border border-border rounded-lg shadow-lg p-4 min-w-[200px]">
       <div className="space-y-2">
         {/* Date */}
         <p className="font-medium text-sm text-foreground">
-          {data.formattedDate}
+          {data.date}
         </p>
         
         {/* Price */}
@@ -93,8 +94,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             )}>
               {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
               <span>
-                {isPositive ? '+' : ''}{formatCurrency(data.change)} 
-                ({isPositive ? '+' : ''}{data.changePercent.toFixed(2)}%)
+                {formatCurrency(data.close)} 
+                (Daily Price)
               </span>
             </div>
           </div>
@@ -214,7 +215,7 @@ export function StockChart({
         area: '#6b728020'
       }
     };
-    return colors[priceStats.trend];
+    return colors[priceStats.trend as keyof typeof colors] || colors.neutral;
   };
 
   const chartColors = getChartColors();

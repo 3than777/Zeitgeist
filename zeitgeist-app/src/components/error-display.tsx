@@ -44,7 +44,7 @@ interface ErrorBoundaryState {
 }
 
 // Error message mapping for user-friendly display
-const ERROR_MESSAGES: Record<string, { title: string; message: string; icon: React.ComponentType<any>; suggestions: string[] }> = {
+const ERROR_MESSAGES: Record<string, { title: string; message: string; icon: React.ComponentType<{className?: string}>; suggestions: string[] }> = {
   [ERROR_TYPES.INVALID_TICKER]: {
     title: 'Invalid Stock Symbol',
     message: 'Please enter a valid stock ticker symbol (e.g., AAPL, MSFT, GOOGL)',
@@ -67,7 +67,7 @@ const ERROR_MESSAGES: Record<string, { title: string; message: string; icon: Rea
       'Contact support if the issue persists'
     ]
   },
-  [ERROR_TYPES.OPENAI_API_ERROR]: {
+  [ERROR_TYPES.ANTHROPIC_API_ERROR]: {
     title: 'Analysis Service Issue',
     message: 'Unable to generate AI analysis at the moment',
     icon: Server,
@@ -212,12 +212,12 @@ function isErrorRetryable(error: StockAPIError | Error | string): boolean {
   if (error && typeof error === 'object' && 'error' in error) {
     return [
       ERROR_TYPES.POLYGON_API_ERROR,
-      ERROR_TYPES.OPENAI_API_ERROR,
+      ERROR_TYPES.ANTHROPIC_API_ERROR,
       ERROR_TYPES.RATE_LIMIT_ERROR,
       ERROR_TYPES.TIMEOUT_ERROR,
       ERROR_TYPES.SERVICE_UNAVAILABLE,
       ERROR_TYPES.INTERNAL_ERROR
-    ].includes(error.error as any);
+    ].includes(error.error as never);
   }
   
   if (error instanceof Error) {
@@ -302,18 +302,18 @@ export function ErrorDisplay({
   const [showFullDetails, setShowFullDetails] = useState(showDetails);
   const [autoRetrying, setAutoRetrying] = useState(false);
 
-  if (!error) return null;
-
-  const errorInfo = getErrorInfo(error);
-  const isRetryable = isErrorRetryable(error) && !!onRetry;
-  const IconComponent = errorInfo.icon;
+  const errorInfo = error ? getErrorInfo(error) : null;
+  const isRetryable = error ? isErrorRetryable(error) && !!onRetry : false;
+  const IconComponent = errorInfo?.icon;
 
   // Auto-retry for retryable errors with delay
   useEffect(() => {
-    if (isRetryable && retryDelay > 0 && onRetry) {
+    if (error && isRetryable && retryDelay > 0 && onRetry) {
       setAutoRetrying(true);
     }
   }, [error, isRetryable, retryDelay, onRetry]);
+
+  if (!error) return null;
 
   const handleRetry = () => {
     setAutoRetrying(false);
@@ -346,8 +346,8 @@ export function ErrorDisplay({
   if (variant === 'compact') {
     return (
       <div className={cn("flex items-center gap-2 text-sm", className)}>
-        <IconComponent className="h-4 w-4 text-destructive flex-shrink-0" />
-        <span className="text-destructive">{errorInfo.title}</span>
+        {IconComponent && <IconComponent className="h-4 w-4 text-destructive flex-shrink-0" />}
+        <span className="text-destructive">{errorInfo?.title}</span>
         {isRetryable && (
           <button
             onClick={handleRetry}
@@ -365,9 +365,9 @@ export function ErrorDisplay({
   if (variant === 'inline') {
     return (
       <div className={cn("flex items-start gap-2 text-sm text-destructive", className)}>
-        <IconComponent className="h-4 w-4 mt-0.5 flex-shrink-0" />
+        {IconComponent && <IconComponent className="h-4 w-4 mt-0.5 flex-shrink-0" />}
         <div className="flex-1">
-          <p>{errorInfo.message}</p>
+          <p>{errorInfo?.message}</p>
           {isRetryable && (
             <button
               onClick={handleRetry}
@@ -388,11 +388,11 @@ export function ErrorDisplay({
       {/* Header */}
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 p-2 bg-destructive/10 rounded-full">
-          <IconComponent className="h-5 w-5 text-destructive" />
+          {IconComponent && <IconComponent className="h-5 w-5 text-destructive" />}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-foreground">{errorInfo.title}</h3>
-          <p className="text-muted-foreground text-sm mt-1">{errorInfo.message}</p>
+          <h3 className="font-semibold text-foreground">{errorInfo?.title}</h3>
+          <p className="text-muted-foreground text-sm mt-1">{errorInfo?.message}</p>
           {context && (
             <p className="text-xs text-muted-foreground mt-1">
               Context: {context}
@@ -402,14 +402,14 @@ export function ErrorDisplay({
       </div>
 
       {/* Suggestions */}
-      {errorInfo.suggestions.length > 0 && (
+      {errorInfo?.suggestions && errorInfo.suggestions.length > 0 && (
         <div className="space-y-2">
           <h4 className="font-medium text-sm flex items-center gap-1">
             <HelpCircle className="h-4 w-4" />
             What you can try:
           </h4>
           <ul className="space-y-1">
-            {errorInfo.suggestions.map((suggestion, index) => (
+            {errorInfo?.suggestions.map((suggestion, index) => (
               <li key={index} className="flex gap-2 text-sm text-muted-foreground">
                 <span className="text-primary mt-1">•</span>
                 <span>{suggestion}</span>

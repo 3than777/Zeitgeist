@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { 
   analyzeStockData,
-  validateOpenAIConfig,
+  validateAnthropicConfig,
   createFallbackAnalysis,
-  createOpenAIError
-} from '../../../lib/openai';
+  createAnthropicError
+} from '../../../lib/anthropic';
 import { 
   StockData, 
   CompanyDetails, 
@@ -39,17 +39,19 @@ interface AnalysisAPIResponse {
 /**
  * Validates the request body structure
  */
-function validateAnalysisRequest(body: any): { isValid: boolean; error?: string; data?: AnalysisRequest } {
+function validateAnalysisRequest(body: unknown): { isValid: boolean; error?: string; data?: AnalysisRequest } {
   if (!body || typeof body !== 'object') {
     return { isValid: false, error: 'Request body must be a JSON object' };
   }
 
-  if (!body.stock_data || typeof body.stock_data !== 'object') {
+  const bodyObj = body as Record<string, unknown>;
+
+  if (!bodyObj.stock_data || typeof bodyObj.stock_data !== 'object') {
     return { isValid: false, error: 'stock_data is required and must be an object' };
   }
 
   // Validate required fields in stock_data
-  const stockData = body.stock_data;
+  const stockData = bodyObj.stock_data as Record<string, unknown>;
   const requiredFields = ['ticker', 'name', 'price', 'previous_close', 'change', 'change_percent'];
   
   for (const field of requiredFields) {
@@ -72,18 +74,18 @@ function validateAnalysisRequest(body: any): { isValid: boolean; error?: string;
   }
 
   // Validate optional company_details if provided
-  if (body.company_details && typeof body.company_details !== 'object') {
+  if (bodyObj.company_details && typeof bodyObj.company_details !== 'object') {
     return { isValid: false, error: 'company_details must be an object if provided' };
   }
 
   // Validate optional price_history if provided
-  if (body.price_history) {
-    if (!Array.isArray(body.price_history)) {
+  if (bodyObj.price_history) {
+    if (!Array.isArray(bodyObj.price_history)) {
       return { isValid: false, error: 'price_history must be an array if provided' };
     }
     
-    if (body.price_history.length > 0) {
-      const firstItem = body.price_history[0];
+    if ((bodyObj.price_history as unknown[]).length > 0) {
+      const firstItem = (bodyObj.price_history as unknown[])[0] as Record<string, unknown>;
       const requiredPriceFields = ['open', 'high', 'low', 'close', 'volume', 'date'];
       
       for (const field of requiredPriceFields) {
@@ -97,10 +99,10 @@ function validateAnalysisRequest(body: any): { isValid: boolean; error?: string;
   return { 
     isValid: true, 
     data: {
-      stock_data: body.stock_data,
-      company_details: body.company_details,
-      price_history: body.price_history,
-      options: body.options || {}
+      stock_data: bodyObj.stock_data as StockData,
+      company_details: bodyObj.company_details as CompanyDetails,
+      price_history: bodyObj.price_history as StockPriceData[],
+      options: bodyObj.options as Record<string, unknown> || {}
     }
   };
 }
@@ -125,10 +127,10 @@ export async function POST(request: NextRequest) {
   
   try {
     // Parse request body
-    let requestBody: any;
+    let requestBody: unknown;
     try {
       requestBody = await request.json();
-    } catch (parseError) {
+    } catch {
       const error: StockAPIError = {
         error: 'INVALID_JSON',
         message: 'Request body must be valid JSON',
@@ -161,8 +163,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { stock_data, company_details, price_history, options } = validation.data!;
-    const maxRetries = Math.min(3, Math.max(0, options.max_retries || 1));
-    const includeFallback = options.include_fallback !== false;
+    const maxRetries = Math.min(3, Math.max(0, options?.max_retries || 1));
+    const includeFallback = options?.include_fallback !== false;
 
     // Log the analysis request
     console.log(`[Analysis API] Analyzing ${stock_data.ticker}, retries: ${maxRetries}, fallback: ${includeFallback}`);
@@ -182,13 +184,8 @@ export async function POST(request: NextRequest) {
         console.warn(`[Analysis API] Attempt ${attempt} failed for ${stock_data.ticker}:`, analysisError);
         
         if (attempt > maxRetries) {
-          // If all retries failed, use fallback or return error
-          if (includeFallback) {
-            console.log(`[Analysis API] Using fallback analysis for ${stock_data.ticker}`);
-            analysis = createFallbackAnalysis(stock_data);
-            modelUsed = 'fallback';
-            break;
-          } else {
+          // If all retries failed, return error
+          {
             // Return the analysis error
             let statusCode = 500;
             let errorMessage = 'Failed to analyze stock data';
