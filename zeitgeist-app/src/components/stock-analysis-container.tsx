@@ -212,7 +212,7 @@ export function StockAnalysisContainer({
             <h1 className="text-3xl font-bold tracking-tight">
               AI-Powered Stock Analysis
             </h1>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            <p className="text-foreground text-lg max-w-2xl mx-auto">
               Get comprehensive analysis of any stock with real-time data and AI insights. 
               Enter a ticker symbol to get started.
             </p>
@@ -224,7 +224,7 @@ export function StockAnalysisContainer({
               <button
                 key={ticker}
                 onClick={() => handleStockSearch(ticker)}
-                className="px-3 py-1 text-sm bg-muted hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
+                className="px-3 py-1 text-sm bg-muted text-foreground hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
               >
                 {ticker}
               </button>
@@ -295,7 +295,7 @@ export function StockAnalysisContainer({
 
           {/* Additional Actions */}
           <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-border">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-sm text-foreground">
               <span>💡 Tip: Press</span>
               <kbd className="px-2 py-1 bg-muted rounded text-xs">Cmd+R</kbd>
               <span>to refresh or</span>
@@ -320,7 +320,7 @@ export function StockAnalysisContainer({
           </div>
 
           {/* Analysis Metadata */}
-          <div className="text-center text-xs text-muted-foreground border-t border-border pt-4">
+          <div className="text-center text-xs text-foreground border-t border-border pt-4">
             <p>
               Analysis completed in {state.searchTimestamp ? `${Date.now() - state.searchTimestamp}ms` : 'unknown time'} • 
               Data from Polygon.io • Analysis by {state.analysis?.model_used || 'AI'} • 
@@ -361,7 +361,7 @@ export function StockAnalysisContainer({
 
           {/* Additional Actions */}
           <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-border">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-sm text-foreground">
               <span>💡 Tip: Press</span>
               <kbd className="px-2 py-1 bg-muted rounded text-xs">Cmd+R</kbd>
               <span>to retry analysis or</span>
@@ -386,7 +386,7 @@ export function StockAnalysisContainer({
           </div>
 
           {/* Stock Data Metadata */}
-          <div className="text-center text-xs text-muted-foreground border-t border-border pt-4">
+          <div className="text-center text-xs text-foreground border-t border-border pt-4">
             <p>
               Stock data retrieved in {state.searchTimestamp ? `${Date.now() - state.searchTimestamp}ms` : 'unknown time'} • 
               Data from Polygon.io • AI analysis unavailable • 
@@ -398,7 +398,7 @@ export function StockAnalysisContainer({
 
       {/* Empty state helper */}
       {!hasData && !hasStockDataOnly && !isLoading && !hasError && !showWelcome && (
-        <div className="text-center py-12 text-muted-foreground">
+        <div className="text-center py-12 text-foreground">
           <p>Search for a stock symbol to get started</p>
         </div>
       )}

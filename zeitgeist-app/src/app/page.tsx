@@ -1,6 +1,7 @@
 import { ShootingStarsAndStarsBackgroundDemo } from "@/components/shooting-stars-background-demo";
+import { DottedGlowBackgroundDemoSecond } from "@/components/dotted-glow-background-demo";
 import { Carousel, Card } from "@/components/ui/apple-cards-carousel";
-import Navigation from "@/components/navigation";
+import { CardSpotlight } from "@/components/ui/card-spotlight";
 import Image from "next/image";
 import Link from "next/link";
 import { TrendingUp, BarChart3, Brain, Target, Shield, Zap } from "lucide-react";
@@ -12,7 +13,6 @@ export default function Home() {
 
   return (
     <div className="bg-black">
-      <Navigation variant="transparent" />
       <ShootingStarsAndStarsBackgroundDemo />
       
       {/* Apple Carousel Section */}
@@ -24,7 +24,7 @@ export default function Home() {
       </div>
 
       {/* Featured Stock Analysis Section */}
-      <div className="w-full py-20 px-8 md:px-16 bg-gradient-to-b from-black to-neutral-900">
+      <div className="w-full py-20 px-8 md:px-16 bg-black">
         <div className="max-w-6xl mx-auto text-center">
           <div className="mb-8">
             <span className="text-sm text-blue-400 font-semibold uppercase tracking-wide">
@@ -41,47 +41,47 @@ export default function Home() {
           
           {/* Feature highlights */}
           <div className="grid md:grid-cols-3 gap-8 mb-12">
-            <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700 rounded-2xl p-8">
-              <div className="flex justify-center mb-4">
-                <div className="p-4 bg-gradient-to-br from-emerald-400 to-green-600 rounded-full">
-                  <TrendingUp className="h-8 w-8 text-white" />
+            <CardSpotlight className="bg-black border border-neutral-700 rounded-2xl p-8">
+              <div className="flex justify-center mb-4 relative z-30">
+                <div className="p-4 bg-gradient-to-br from-emerald-400 to-green-600 rounded-full relative z-30">
+                  <TrendingUp className="h-8 w-8 text-white relative z-30" />
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-neutral-100 mb-3">
+              <h3 className="text-xl font-bold text-neutral-100 mb-3 relative z-20">
                 Real-Time Analysis
               </h3>
-              <p className="text-neutral-400">
+              <p className="text-neutral-400 relative z-20">
                 Live market data with instant AI analysis of price movements, trends, and patterns
               </p>
-            </div>
+            </CardSpotlight>
 
-            <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700 rounded-2xl p-8">
-              <div className="flex justify-center mb-4">
-                <div className="p-4 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full">
-                  <Brain className="h-8 w-8 text-white" />
+            <CardSpotlight className="bg-black border border-neutral-700 rounded-2xl p-8">
+              <div className="flex justify-center mb-4 relative z-30">
+                <div className="p-4 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full relative z-30">
+                  <Brain className="h-8 w-8 text-white relative z-30" />
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-neutral-100 mb-3">
+              <h3 className="text-xl font-bold text-neutral-100 mb-3 relative z-20">
                 AI-Powered Insights
               </h3>
-              <p className="text-neutral-400">
+              <p className="text-neutral-400 relative z-20">
                 Advanced machine learning models provide comprehensive fundamental and technical analysis
               </p>
-            </div>
+            </CardSpotlight>
 
-            <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700 rounded-2xl p-8">
-              <div className="flex justify-center mb-4">
-                <div className="p-4 bg-gradient-to-br from-purple-400 to-pink-600 rounded-full">
-                  <Target className="h-8 w-8 text-white" />
+            <CardSpotlight className="bg-black border border-neutral-700 rounded-2xl p-8">
+              <div className="flex justify-center mb-4 relative z-30">
+                <div className="p-4 bg-gradient-to-br from-purple-400 to-pink-600 rounded-full relative z-30">
+                  <Target className="h-8 w-8 text-white relative z-30" />
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-neutral-100 mb-3">
+              <h3 className="text-xl font-bold text-neutral-100 mb-3 relative z-20">
                 Smart Recommendations
               </h3>
-              <p className="text-neutral-400">
+              <p className="text-neutral-400 relative z-20">
                 Actionable investment recommendations with risk assessment and price targets
               </p>
-            </div>
+            </CardSpotlight>
           </div>
 
           {/* CTA Button */}
@@ -112,8 +112,10 @@ export default function Home() {
         </div>
       </div>
       
-      {/* Gradient section */}
-      <div className="relative h-screen w-screen bg-gradient-to-b from-neutral-900 via-black/50 to-black" />
+      {/* Dotted Glow Background Section */}
+      <div className="relative h-screen w-screen bg-black">
+        <DottedGlowBackgroundDemoSecond />
+      </div>
     </div>
   );
 }

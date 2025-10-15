@@ -9,8 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@react-three/drei": "^10.7.6",
-    "@react-three/fiber": "^9.3.0",
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^9.0.0-alpha.8",
     "@tabler/icons-react": "^3.35.0",
     "axios": "^1.12.2",
     "class-variance-authority": "^0.7.1",
@@ -18,9 +19,8 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.22",
     "lucide-react": "^0.545.0",
-    "motion": "^12.23.22",
+    "motion": "^12.23.24",
     "next": "15.5.4",
-    "@anthropic-ai/sdk": "^0.32.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "recharts": "^3.2.1",
@@ -34,9 +34,30 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.180.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@react-spring/animated": {
+      "react": "$react"
+    },
+    "@react-spring/core": {
+      "react": "$react"
+    },
+    "@react-spring/shared": {
+      "react": "$react"
+    },
+    "@react-spring/three": {
+      "react": "$react",
+      "@react-three/fiber": "$@react-three/fiber"
+    },
+    "@react-three/drei": {
+      "react": "$react",
+      "react-dom": "$react-dom",
+      "@react-three/fiber": "$@react-three/fiber"
+    }
   }
 }

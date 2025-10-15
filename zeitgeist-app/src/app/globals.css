@@ -123,7 +123,14 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    background-color: #000000;
+    overscroll-behavior: none;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background-color: #000000 !important;
+    overscroll-behavior: none;
+    overflow-x: hidden;
   }
 }

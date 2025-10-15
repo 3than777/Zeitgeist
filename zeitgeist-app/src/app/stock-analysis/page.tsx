@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ChevronRight, TrendingUp, BarChart3, Brain, Home } from "lucide-react";
-import Navigation from "@/components/navigation";
+import { TrendingUp, BarChart3, Brain } from "lucide-react";
 import StockAnalysisContainer from "@/components/stock-analysis-container";
 
 // SEO Metadata
@@ -52,23 +50,6 @@ export const metadata: Metadata = {
   }
 };
 
-// Breadcrumb Component
-function Breadcrumb() {
-  return (
-    <nav className="flex items-center space-x-2 text-sm text-muted-foreground mb-8">
-      <Link 
-        href="/" 
-        className="flex items-center hover:text-foreground transition-colors"
-      >
-        <Home className="h-4 w-4 mr-1" />
-        Home
-      </Link>
-      <ChevronRight className="h-4 w-4" />
-      <span className="text-foreground font-medium">Stock Analysis</span>
-    </nav>
-  );
-}
-
 // Feature highlights component
 function FeatureHighlights() {
   const features = [
@@ -94,13 +75,13 @@ function FeatureHighlights() {
       {features.map((feature, index) => {
         const IconComponent = feature.icon;
         return (
-          <div key={index} className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+          <div key={index} className="flex items-center gap-3 p-4 bg-card border border-border rounded-lg">
             <div className="flex-shrink-0 p-2 bg-primary/10 rounded-full">
               <IconComponent className="h-5 w-5 text-primary" />
             </div>
             <div>
               <h3 className="font-semibold text-sm">{feature.title}</h3>
-              <p className="text-xs text-muted-foreground">{feature.description}</p>
+              <p className="text-xs text-foreground">{feature.description}</p>
             </div>
           </div>
         );
@@ -112,20 +93,15 @@ function FeatureHighlights() {
 export default function StockAnalysisPage() {
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
-
       {/* Main Content */}
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-7xl mx-auto">
-          {/* Breadcrumb */}
-          <Breadcrumb />
-          
           {/* Page Header */}
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold tracking-tight mb-4">
               AI-Powered Stock Analysis
             </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-xl text-foreground max-w-3xl mx-auto">
               Get comprehensive analysis of any publicly traded stock with real-time data, 
               technical indicators, fundamental analysis, and AI-powered investment insights.
             </p>
@@ -142,62 +118,6 @@ export default function StockAnalysisPage() {
           />
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border mt-16">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-              <div className="col-span-1 md:col-span-2">
-                <div className="flex items-center space-x-2 mb-4">
-                  <div className="w-6 h-6 bg-primary rounded-lg flex items-center justify-center">
-                    <TrendingUp className="h-4 w-4 text-primary-foreground" />
-                  </div>
-                  <span className="font-bold text-lg">Zeitgeist</span>
-                </div>
-                <p className="text-muted-foreground text-sm max-w-md">
-                  AI-powered stock analysis platform providing comprehensive investment insights 
-                  with real-time data and advanced analytics.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-4">Features</h3>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>Real-time Stock Data</li>
-                  <li>AI Analysis</li>
-                  <li>Technical Indicators</li>
-                  <li>Price Predictions</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-4">Resources</h3>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>
-                    <Link href="/" className="hover:text-foreground transition-colors">
-                      Home
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/stock-analysis" className="hover:text-foreground transition-colors">
-                      Stock Analysis
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-            </div>
-            <div className="mt-8 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center">
-              <p className="text-muted-foreground text-sm">
-                © 2024 Zeitgeist AI. All rights reserved.
-              </p>
-              <div className="flex items-center space-x-4 mt-4 md:mt-0">
-                <p className="text-xs text-muted-foreground">
-                  Data provided by Polygon.io • Analysis by Claude • Not financial advice
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </footer>
 
       {/* Structured Data for SEO */}
       <script
