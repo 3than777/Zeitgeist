@@ -35,9 +35,14 @@ export function ShootingStarsAndStarsBackgroundDemo() {
         <ShootingStars />
         <StarsBackground />
       </div>
-      <h2 className="relative flex-col md:flex-row z-10 text-4xl md:text-7xl md:leading-tight max-w-5xl mx-auto text-center tracking-tight font-medium text-white flex items-center gap-2 md:gap-8 pointer-events-none">
-        <span>Zeitgeist: The <ContainerTextFlip words={["Better", "Smarter", "Advanced", "Modern"]} /><br />Finance Software</span>
-      </h2>
+      <div className="relative z-10 text-4xl md:text-7xl md:leading-tight max-w-5xl mx-auto text-center tracking-tight font-medium text-white pointer-events-none">
+        <div className="inline-block">
+          Zeitgeist: The{" "}
+          <ContainerTextFlip words={["Better", "Smarter", "Advanced", "Modern"]} />
+        </div>
+        <br />
+        <div className="inline-block">Finance Software</div>
+      </div>
       <div className="relative z-10 mt-8 flex justify-center pointer-events-auto">
         <HoverBorderGradient
           containerClassName="rounded-full"
