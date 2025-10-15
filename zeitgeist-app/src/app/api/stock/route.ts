@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
 /**
  * POST method is not supported for this endpoint
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   const error: StockAPIError = {
     error: 'METHOD_NOT_ALLOWED',
     message: 'POST method is not supported for this endpoint',
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
 /**
  * PUT method is not supported for this endpoint
  */
-export async function PUT(request: NextRequest) {
+export async function PUT(_request: NextRequest) {
   const error: StockAPIError = {
     error: 'METHOD_NOT_ALLOWED',
     message: 'PUT method is not supported for this endpoint',
@@ -208,7 +208,7 @@ export async function PUT(request: NextRequest) {
 /**
  * DELETE method is not supported for this endpoint
  */
-export async function DELETE(request: NextRequest) {
+export async function DELETE(_request: NextRequest) {
   const error: StockAPIError = {
     error: 'METHOD_NOT_ALLOWED',
     message: 'DELETE method is not supported for this endpoint',

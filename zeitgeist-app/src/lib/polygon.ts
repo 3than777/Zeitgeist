@@ -3,7 +3,6 @@ import { format, subDays } from 'date-fns';
 import { 
   StockData, 
   CompanyDetails, 
-  StockHistoryData, 
   StockPriceData,
   StockAPIError 
 } from '@/types/stock';

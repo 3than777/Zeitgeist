@@ -165,7 +165,7 @@ const NOT_FOUND_PATTERNS = [
 /**
  * Detects if an error indicates quota exceeded (more specific than rate limiting)
  */
-export function isQuotaExceededError(error: Error | string, statusCode?: number): boolean {
+export function isQuotaExceededError(error: Error | string, _statusCode?: number): boolean {
   const message = typeof error === 'string' ? error : error.message;
   return QUOTA_EXCEEDED_PATTERNS.some(pattern => pattern.test(message));
 }

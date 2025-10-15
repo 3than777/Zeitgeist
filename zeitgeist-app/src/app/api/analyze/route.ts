@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { 
-  analyzeStockData,
-  validateAnthropicConfig,
-  createFallbackAnalysis,
-  createAnthropicError
+  analyzeStockData
 } from '../../../lib/anthropic';
 import { 
   StockData, 
@@ -268,7 +265,7 @@ export async function POST(request: NextRequest) {
 /**
  * GET method is not supported for this endpoint
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   const error: StockAPIError = {
     error: 'METHOD_NOT_ALLOWED',
     message: 'GET method is not supported for this endpoint',
@@ -286,7 +283,7 @@ export async function GET(request: NextRequest) {
 /**
  * PUT method is not supported for this endpoint
  */
-export async function PUT(request: NextRequest) {
+export async function PUT(_request: NextRequest) {
   const error: StockAPIError = {
     error: 'METHOD_NOT_ALLOWED',
     message: 'PUT method is not supported for this endpoint',
@@ -304,7 +301,7 @@ export async function PUT(request: NextRequest) {
 /**
  * DELETE method is not supported for this endpoint
  */
-export async function DELETE(request: NextRequest) {
+export async function DELETE(_request: NextRequest) {
   const error: StockAPIError = {
     error: 'METHOD_NOT_ALLOWED',
     message: 'DELETE method is not supported for this endpoint',
