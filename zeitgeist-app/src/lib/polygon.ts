@@ -34,8 +34,9 @@ export async function getStockData(ticker: string): Promise<StockData> {
     
     // Get previous day's aggregate data (most recent complete trading day)
     const response = await polygonAPI.get(`/v2/aggs/ticker/${formattedTicker}/prev`);
-    
-    if (response.data.status !== 'OK') {
+
+    // "DELAYED" means valid data on a delayed-data plan
+    if (response.data.status !== 'OK' && response.data.status !== 'DELAYED') {
       throw new Error(`Polygon API error: ${response.data.status}`);
     }
 
@@ -129,8 +130,9 @@ export async function getStockHistory(ticker: string, days: number = 30): Promis
         },
       }
     );
-    
-    if (response.data.status !== 'OK') {
+
+    // "DELAYED" means valid data on a delayed-data plan
+    if (response.data.status !== 'OK' && response.data.status !== 'DELAYED') {
       throw new Error(`Polygon API error: ${response.data.status}`);
     }
 
@@ -181,8 +183,9 @@ export async function getCompanyDetails(ticker: string): Promise<CompanyDetails>
     
     // Get ticker details from reference endpoint
     const response = await polygonAPI.get(`/v3/reference/tickers/${formattedTicker}`);
-    
-    if (response.data.status !== 'OK') {
+
+    // "DELAYED" means valid data on a delayed-data plan
+    if (response.data.status !== 'OK' && response.data.status !== 'DELAYED') {
       throw new Error(`Polygon API error: ${response.data.status}`);
     }
 
