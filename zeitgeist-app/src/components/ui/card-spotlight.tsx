@@ -56,17 +56,18 @@ export const CardSpotlight = ({
           `,
         }}
       >
-        {isHovering && (
-          <CanvasRevealEffect
-            animationSpeed={5}
-            containerClassName="bg-transparent absolute inset-0 pointer-events-none"
-            colors={[
-              [59, 130, 246],
-              [139, 92, 246],
-            ]}
-            dotSize={3}
-          />
-        )}
+        {/* Kept mounted so hovering doesn't create a new WebGL context each
+            time; `active` gates rendering and replays the reveal. */}
+        <CanvasRevealEffect
+          active={isHovering}
+          animationSpeed={5}
+          containerClassName="bg-transparent absolute inset-0 pointer-events-none"
+          colors={[
+            [59, 130, 246],
+            [139, 92, 246],
+          ]}
+          dotSize={3}
+        />
       </motion.div>
       {children}
     </div>

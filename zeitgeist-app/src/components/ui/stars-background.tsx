@@ -105,9 +105,15 @@ export const StarsBackground: React.FC<StarBackgroundProps> = ({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    let animationFrameId: number;
+    let animationFrameId: number | null = null;
+    let visible = true;
 
     const render = () => {
+      if (!visible) {
+        animationFrameId = null;
+        return;
+      }
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       stars.forEach((star) => {
         ctx.beginPath();
@@ -125,10 +131,20 @@ export const StarsBackground: React.FC<StarBackgroundProps> = ({
       animationFrameId = requestAnimationFrame(render);
     };
 
+    // Skip twinkle frames entirely while the canvas is off-screen.
+    const io = new IntersectionObserver((entries) => {
+      visible = entries[0]?.isIntersecting ?? true;
+      if (visible && animationFrameId === null) {
+        animationFrameId = requestAnimationFrame(render);
+      }
+    });
+    io.observe(canvas);
+
     render();
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
+      io.disconnect();
     };
   }, [stars]);
 

@@ -9,7 +9,7 @@ export function ShootingStarsAndStarsBackgroundDemo() {
   return (
     <div className="h-[40rem] rounded-md flex flex-col items-center justify-center relative w-full overflow-hidden">
       <PixelatedCanvas
-        src="/graham-holtshausen-fUnfEz3VLv4-unsplash.jpg"
+        src="/hero-night-sky.jpg"
         width={2560}
         height={640}
         cellSize={3}

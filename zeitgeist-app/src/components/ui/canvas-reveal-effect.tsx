@@ -11,6 +11,7 @@ export const CanvasRevealEffect = ({
   containerClassName,
   dotSize,
   showGradient = true,
+  active = true,
 }: {
   /**
    * 0.1 - slower
@@ -22,11 +23,17 @@ export const CanvasRevealEffect = ({
   containerClassName?: string;
   dotSize?: number;
   showGradient?: boolean;
+  /**
+   * While false the canvas stays mounted but stops rendering entirely.
+   * Flipping to true replays the reveal from the start.
+   */
+  active?: boolean;
 }) => {
   return (
     <div className={cn("h-full relative bg-white w-full", containerClassName)}>
       <div className="h-full w-full">
         <DotMatrix
+          active={active}
           colors={colors ?? [[0, 255, 255]]}
           dotSize={dotSize ?? 3}
           opacities={
@@ -55,6 +62,7 @@ interface DotMatrixProps {
   dotSize?: number;
   shader?: string;
   center?: ("x" | "y")[];
+  active?: boolean;
 }
 
 const DotMatrix: React.FC<DotMatrixProps> = ({
@@ -64,6 +72,7 @@ const DotMatrix: React.FC<DotMatrixProps> = ({
   dotSize = 2,
   shader = "",
   center = ["x", "y"],
+  active = true,
 }) => {
   const uniforms = React.useMemo(() => {
     let colorsArray = [
@@ -171,6 +180,7 @@ const DotMatrix: React.FC<DotMatrixProps> = ({
         }`}
       uniforms={uniforms}
       maxFps={60}
+      active={active}
     />
   );
 };
@@ -185,30 +195,44 @@ const ShaderMaterial = ({
   source,
   uniforms,
   maxFps = 60,
+  active = true,
 }: {
   source: string;
   hovered?: boolean;
   maxFps?: number;
   uniforms: Uniforms;
+  active?: boolean;
 }) => {
   const { size } = useThree();
   const ref = useRef<THREE.Mesh>(null!);
-  let lastFrameTime = 0;
+  const lastFrameTime = useRef(0);
+  const startTime = useRef(0);
+  const wasActive = useRef(false);
+  // Re-base u_time on each activation so the reveal replays from the start.
+  if (!active) {
+    wasActive.current = false;
+  }
 
   useFrame(({ clock }) => {
-    if (!ref.current) return;
+    if (!ref.current || !active) return;
     const timestamp = clock.getElapsedTime();
-    if (timestamp - lastFrameTime < 1 / maxFps) {
+    if (!wasActive.current) {
+      wasActive.current = true;
+      startTime.current = timestamp;
+      lastFrameTime.current = 0;
+    }
+    if (timestamp - lastFrameTime.current < 1 / maxFps) {
       return;
     }
-    lastFrameTime = timestamp;
+    lastFrameTime.current = timestamp;
 
     const material = ref.current.material as THREE.ShaderMaterial;
     const timeLocation = material.uniforms.u_time;
-    timeLocation.value = timestamp;
+    timeLocation.value = timestamp - startTime.current;
   });
 
-  const getUniforms = () => {
+  // Shader material
+  const material = useMemo(() => {
     const preparedUniforms: Record<string, { value: unknown; type?: string }> = {};
 
     for (const uniformName in uniforms) {
@@ -251,11 +275,7 @@ const ShaderMaterial = ({
     preparedUniforms["u_resolution"] = {
       value: new THREE.Vector2(size.width * 2, size.height * 2),
     }; // Initialize u_resolution
-    return preparedUniforms;
-  };
 
-  // Shader material
-  const material = useMemo(() => {
     const materialObject = new THREE.ShaderMaterial({
       vertexShader: `
       precision mediump float;
@@ -271,7 +291,7 @@ const ShaderMaterial = ({
       }
       `,
       fragmentShader: source,
-      uniforms: getUniforms(),
+      uniforms: preparedUniforms,
       glslVersion: THREE.GLSL3,
       blending: THREE.CustomBlending,
       blendSrc: THREE.SrcAlphaFactor,
@@ -279,7 +299,13 @@ const ShaderMaterial = ({
     });
 
     return materialObject;
-  }, [size.width, size.height, source, getUniforms]);
+  }, [size.width, size.height, source, uniforms]);
+
+  React.useEffect(() => {
+    return () => {
+      material.dispose();
+    };
+  }, [material]);
 
   return (
     <mesh ref={ref}>
@@ -289,10 +315,23 @@ const ShaderMaterial = ({
   );
 };
 
-const Shader: React.FC<ShaderProps> = ({ source, uniforms, maxFps = 60 }) => {
+const Shader: React.FC<ShaderProps> = ({
+  source,
+  uniforms,
+  maxFps = 60,
+  active = true,
+}) => {
   return (
-    <Canvas className="absolute inset-0  h-full w-full">
-      <ShaderMaterial source={source} uniforms={uniforms} maxFps={maxFps} />
+    <Canvas
+      className="absolute inset-0  h-full w-full"
+      frameloop={active ? "always" : "never"}
+    >
+      <ShaderMaterial
+        source={source}
+        uniforms={uniforms}
+        maxFps={maxFps}
+        active={active}
+      />
     </Canvas>
   );
 };
@@ -305,4 +344,5 @@ interface ShaderProps {
     };
   };
   maxFps?: number;
+  active?: boolean;
 }

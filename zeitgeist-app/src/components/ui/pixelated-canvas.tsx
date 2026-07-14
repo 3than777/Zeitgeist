@@ -50,6 +50,15 @@ type PixelatedCanvasProps = {
   fadeSpeed?: number;
 };
 
+type Sample = {
+  x: number;
+  y: number;
+  a: number;
+  drop: boolean;
+  seed: number;
+  style: string;
+};
+
 export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
   src,
   width = 400,
@@ -78,22 +87,17 @@ export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
   fadeSpeed = 0.1,
 }) => {
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
-  const samplesRef = React.useRef<
-    Array<{
-      x: number;
-      y: number;
-      r: number;
-      g: number;
-      b: number;
-      a: number;
-      drop: boolean;
-      seed: number;
-    }>
-  >([]);
+  const samplesRef = React.useRef<Sample[]>([]);
+  const gridRef = React.useRef<{ cols: number; rows: number }>({
+    cols: 0,
+    rows: 0,
+  });
+  const staticCanvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const dimsRef = React.useRef<{
     width: number;
     height: number;
     dot: number;
+    dpr: number;
   } | null>(null);
   const targetMouseRef = React.useRef<{ x: number; y: number }>({
     x: -9999,
@@ -108,6 +112,7 @@ export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
   const pointerInsideRef = React.useRef<boolean>(false);
   const activityRef = React.useRef<number>(0);
   const activityTargetRef = React.useRef<number>(0);
+  const visibleRef = React.useRef<boolean>(true);
 
   React.useEffect(() => {
     let isCancelled = false;
@@ -118,18 +123,38 @@ export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
     img.crossOrigin = "anonymous";
     img.src = src;
 
+    // Blit the prerendered static dot field onto the visible canvas.
+    const drawStatic = (ctx: CanvasRenderingContext2D) => {
+      const dims = dimsRef.current;
+      const staticCanvas = staticCanvasRef.current;
+      if (!dims || !staticCanvas) return;
+      ctx.setTransform(dims.dpr, 0, 0, dims.dpr, 0, 0);
+      ctx.drawImage(staticCanvas, 0, 0, dims.width, dims.height);
+    };
+
     const compute = () => {
       if (!canvas) return;
       const dpr =
         typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
 
-      const displayWidth = width ?? img.naturalWidth;
-      const displayHeight = height ?? img.naturalHeight;
+      // When responsive, size the backing store to the CSS layout box so we
+      // never sample/draw more dots than are actually visible.
+      let displayWidth = width ?? img.naturalWidth;
+      let displayHeight = height ?? img.naturalHeight;
+      if (responsive) {
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          displayWidth = Math.floor(rect.width);
+          displayHeight = Math.floor(rect.height);
+        }
+      }
 
       canvas.width = Math.max(1, Math.floor(displayWidth * dpr));
       canvas.height = Math.max(1, Math.floor(displayHeight * dpr));
-      canvas.style.width = `${displayWidth}px`;
-      canvas.style.height = `${displayHeight}px`;
+      if (!responsive) {
+        canvas.style.width = `${displayWidth}px`;
+        canvas.style.height = `${displayHeight}px`;
+      }
 
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
@@ -193,6 +218,7 @@ export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
         width: displayWidth,
         height: displayHeight,
         dot: effectiveDotSize,
+        dpr,
       };
 
       const luminanceAt = (px: number, py: number) => {
@@ -210,16 +236,7 @@ export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
         return s - Math.floor(s);
       };
 
-      const samples: Array<{
-        x: number;
-        y: number;
-        r: number;
-        g: number;
-        b: number;
-        a: number;
-        drop: boolean;
-        seed: number;
-      }> = [];
+      const samples: Sample[] = [];
 
       let tintRGB: [number, number, number] | null = null;
       if (tintColor && tintStrength > 0) {
@@ -311,11 +328,63 @@ export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
           const drop = hash2D(cx, cy) < dropoutProb;
           const seed = hash2D(cx, cy);
 
-          samples.push({ x, y, r, g, b, a, drop, seed });
+          samples.push({
+            x,
+            y,
+            a,
+            drop,
+            seed,
+            style: `rgb(${r}, ${g}, ${b})`,
+          });
         }
       }
 
       samplesRef.current = samples;
+      gridRef.current = {
+        cols: Math.ceil(offscreen.width / cellSize),
+        rows: Math.ceil(offscreen.height / cellSize),
+      };
+
+      // Prerender the undistorted dot field once; the animation loop blits
+      // this and only repaints the region under the pointer.
+      const staticCanvas = document.createElement("canvas");
+      staticCanvas.width = canvas.width;
+      staticCanvas.height = canvas.height;
+      const sctx = staticCanvas.getContext("2d");
+      if (!sctx) return;
+      sctx.scale(dpr, dpr);
+      if (backgroundColor) {
+        sctx.fillStyle = backgroundColor;
+        sctx.fillRect(0, 0, displayWidth, displayHeight);
+      }
+      for (const s of samples) {
+        if (s.drop || s.a <= 0) continue;
+        sctx.globalAlpha = s.a;
+        sctx.fillStyle = s.style;
+        if (shape === "circle") {
+          const radius = effectiveDotSize / 2;
+          sctx.beginPath();
+          sctx.arc(
+            s.x + cellSize / 2,
+            s.y + cellSize / 2,
+            radius,
+            0,
+            Math.PI * 2,
+          );
+          sctx.fill();
+        } else {
+          sctx.fillRect(
+            s.x + cellSize / 2 - effectiveDotSize / 2,
+            s.y + cellSize / 2 - effectiveDotSize / 2,
+            effectiveDotSize,
+            effectiveDotSize,
+          );
+        }
+      }
+      sctx.globalAlpha = 1;
+      staticCanvasRef.current = staticCanvas;
+
+      drawStatic(ctx);
     };
 
     img.onload = () => {
@@ -324,44 +393,18 @@ export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
       const canvasEl = canvasRef.current;
       if (!canvasEl) return;
 
-      if (!interactive) {
-        const ctx = canvasEl.getContext("2d");
-        const dims = dimsRef.current;
-        const samples = samplesRef.current;
-        if (!ctx || !dims || !samples) return;
-        if (backgroundColor) {
-          ctx.fillStyle = backgroundColor;
-          ctx.fillRect(0, 0, dims.width, dims.height);
-        } else {
-          ctx.clearRect(0, 0, dims.width, dims.height);
+      if (!interactive) return;
+
+      const startLoop = () => {
+        if (rafRef.current !== null || !visibleRef.current) return;
+        rafRef.current = requestAnimationFrame(animate);
+      };
+      const stopLoop = () => {
+        if (rafRef.current !== null) {
+          cancelAnimationFrame(rafRef.current);
+          rafRef.current = null;
         }
-        for (const s of samples) {
-          if (s.drop || s.a <= 0) continue;
-          ctx.globalAlpha = s.a;
-          ctx.fillStyle = `rgb(${s.r}, ${s.g}, ${s.b})`;
-          if (shape === "circle") {
-            const radius = dims.dot / 2;
-            ctx.beginPath();
-            ctx.arc(
-              s.x + cellSize / 2,
-              s.y + cellSize / 2,
-              radius,
-              0,
-              Math.PI * 2,
-            );
-            ctx.fill();
-          } else {
-            ctx.fillRect(
-              s.x + cellSize / 2 - dims.dot / 2,
-              s.y + cellSize / 2 - dims.dot / 2,
-              dims.dot,
-              dims.dot,
-            );
-          }
-        }
-        ctx.globalAlpha = 1;
-        return;
-      }
+      };
 
       const onPointerMove = (e: PointerEvent) => {
         const rect = canvasEl.getBoundingClientRect();
@@ -369,10 +412,12 @@ export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
         targetMouseRef.current.y = e.clientY - rect.top;
         pointerInsideRef.current = true;
         activityTargetRef.current = 1;
+        startLoop();
       };
       const onPointerEnter = () => {
         pointerInsideRef.current = true;
         activityTargetRef.current = 1;
+        startLoop();
       };
       const onPointerLeave = () => {
         pointerInsideRef.current = false;
@@ -387,7 +432,19 @@ export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
       canvasEl.addEventListener("pointerenter", onPointerEnter);
       canvasEl.addEventListener("pointerleave", onPointerLeave);
 
+      // Pause the animation entirely while the canvas is scrolled off-screen.
+      const io = new IntersectionObserver((entries) => {
+        visibleRef.current = entries[0]?.isIntersecting ?? true;
+        if (!visibleRef.current) {
+          stopLoop();
+        } else if (pointerInsideRef.current || activityRef.current > 0.002) {
+          startLoop();
+        }
+      });
+      io.observe(canvasEl);
+
       const animate = () => {
+        rafRef.current = null;
         const now = performance.now();
         const minDelta = 1000 / Math.max(1, maxFps);
         if (now - lastFrameRef.current < minDelta) {
@@ -398,7 +455,8 @@ export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
         const ctx = canvasEl.getContext("2d");
         const dims = dimsRef.current;
         const samples = samplesRef.current;
-        if (!ctx || !dims || !samples) {
+        const { cols, rows } = gridRef.current;
+        if (!ctx || !dims || !samples.length) {
           rafRef.current = requestAnimationFrame(animate);
           return;
         }
@@ -417,71 +475,117 @@ export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
         } else {
           activityRef.current = pointerInsideRef.current ? 1 : 0;
         }
+        const activity = Math.max(0, Math.min(1, activityRef.current));
 
-        if (backgroundColor) {
-          ctx.fillStyle = backgroundColor;
-          ctx.fillRect(0, 0, dims.width, dims.height);
-        } else {
-          ctx.clearRect(0, 0, dims.width, dims.height);
+        // Distortion has fully faded: settle on the static frame and stop
+        // animating until the pointer comes back.
+        if (!pointerInsideRef.current && activity < 0.002) {
+          activityRef.current = 0;
+          drawStatic(ctx);
+          return;
         }
+
+        drawStatic(ctx);
 
         const mx = animMouseRef.current.x;
         const my = animMouseRef.current.y;
         const sigma = Math.max(1, distortionRadius * 0.5);
         const t = now * 0.001 * jitterSpeed;
-        const activity = Math.max(0, Math.min(1, activityRef.current));
 
-        for (const s of samples) {
-          if (s.drop || s.a <= 0) continue;
-          let drawX = s.x + cellSize / 2;
-          let drawY = s.y + cellSize / 2;
-          const dx = drawX - mx;
-          const dy = drawY - my;
-          const dist2 = dx * dx + dy * dy;
-          const falloff = Math.exp(-dist2 / (2 * sigma * sigma));
-          const influence = falloff * activity;
-          if (influence > 0.0005) {
-            if (distortionMode === "repel") {
-              const dist = Math.sqrt(dist2) + 0.0001;
-              drawX += (dx / dist) * distortionStrength * influence;
-              drawY += (dy / dist) * distortionStrength * influence;
-            } else if (distortionMode === "attract") {
-              const dist = Math.sqrt(dist2) + 0.0001;
-              drawX -= (dx / dist) * distortionStrength * influence;
-              drawY -= (dy / dist) * distortionStrength * influence;
-            } else if (distortionMode === "swirl") {
-              const angle = distortionStrength * 0.05 * influence;
-              const cosA = Math.cos(angle);
-              const sinA = Math.sin(angle);
-              const rx = cosA * dx - sinA * dy;
-              const ry = sinA * dx + cosA * dy;
-              drawX = mx + rx;
-              drawY = my + ry;
+        // Only repaint the square around the pointer that distortion/jitter
+        // can actually displace.
+        const reach = distortionRadius * 2;
+        const margin = distortionStrength + jitterStrength + dims.dot + 2;
+        const minX = mx - reach - margin;
+        const maxX = mx + reach + margin;
+        const minY = my - reach - margin;
+        const maxY = my + reach + margin;
+        if (maxX < 0 || minX > dims.width || maxY < 0 || minY > dims.height) {
+          rafRef.current = requestAnimationFrame(animate);
+          return;
+        }
+
+        const clampedMinX = Math.max(0, minX);
+        const clampedMinY = Math.max(0, minY);
+        const clampedMaxX = Math.min(dims.width, maxX);
+        const clampedMaxY = Math.min(dims.height, maxY);
+        if (backgroundColor) {
+          ctx.fillStyle = backgroundColor;
+          ctx.fillRect(
+            clampedMinX,
+            clampedMinY,
+            clampedMaxX - clampedMinX,
+            clampedMaxY - clampedMinY,
+          );
+        } else {
+          ctx.clearRect(
+            clampedMinX,
+            clampedMinY,
+            clampedMaxX - clampedMinX,
+            clampedMaxY - clampedMinY,
+          );
+        }
+
+        const col0 = Math.max(0, Math.floor((minX - margin) / cellSize));
+        const col1 = Math.min(cols - 1, Math.ceil((maxX + margin) / cellSize));
+        const row0 = Math.max(0, Math.floor((minY - margin) / cellSize));
+        const row1 = Math.min(rows - 1, Math.ceil((maxY + margin) / cellSize));
+
+        for (let row = row0; row <= row1; row++) {
+          const base = row * cols;
+          for (let col = col0; col <= col1; col++) {
+            const s = samples[base + col];
+            if (!s || s.drop || s.a <= 0) continue;
+            let drawX = s.x + cellSize / 2;
+            let drawY = s.y + cellSize / 2;
+            const dx = drawX - mx;
+            const dy = drawY - my;
+            const dist2 = dx * dx + dy * dy;
+            const falloff = Math.exp(-dist2 / (2 * sigma * sigma));
+            const influence = falloff * activity;
+            if (influence > 0.0005) {
+              if (distortionMode === "repel") {
+                const dist = Math.sqrt(dist2) + 0.0001;
+                drawX += (dx / dist) * distortionStrength * influence;
+                drawY += (dy / dist) * distortionStrength * influence;
+              } else if (distortionMode === "attract") {
+                const dist = Math.sqrt(dist2) + 0.0001;
+                drawX -= (dx / dist) * distortionStrength * influence;
+                drawY -= (dy / dist) * distortionStrength * influence;
+              } else if (distortionMode === "swirl") {
+                const angle = distortionStrength * 0.05 * influence;
+                const cosA = Math.cos(angle);
+                const sinA = Math.sin(angle);
+                const rx = cosA * dx - sinA * dy;
+                const ry = sinA * dx + cosA * dy;
+                drawX = mx + rx;
+                drawY = my + ry;
+              }
+
+              if (jitterStrength > 0) {
+                const k = s.seed * 43758.5453;
+                const jx = Math.sin(t + k) * jitterStrength * influence;
+                const jy = Math.cos(t + k * 1.13) * jitterStrength * influence;
+                drawX += jx;
+                drawY += jy;
+              }
             }
 
-            if (jitterStrength > 0) {
-              const k = s.seed * 43758.5453;
-              const jx = Math.sin(t + k) * jitterStrength * influence;
-              const jy = Math.cos(t + k * 1.13) * jitterStrength * influence;
-              drawX += jx;
-              drawY += jy;
+            ctx.globalAlpha = s.a;
+            ctx.fillStyle = s.style;
+            if (shape === "circle") {
+              const radius = dims.dot / 2;
+              ctx.beginPath();
+              ctx.arc(drawX, drawY, radius, 0, Math.PI * 2);
+              ctx.fill();
+            } else {
+              ctx.fillRect(
+                drawX - dims.dot / 2,
+                drawY - dims.dot / 2,
+                dims.dot,
+                dims.dot,
+              );
             }
-          }
-
-          ctx.globalAlpha = s.a;
-          ctx.fillStyle = `rgb(${s.r}, ${s.g}, ${s.b})`;
-          if (shape === "circle") {
-            const radius = dims.dot / 2;
-            ctx.beginPath();
-            ctx.arc(drawX, drawY, radius, 0, Math.PI * 2);
-            ctx.fill();
-          } else {
-            ctx.fillRect(
-              drawX - dims.dot / 2,
-              drawY - dims.dot / 2,
-              dims.dot,
-              dims.dot,
-            );
           }
         }
         ctx.globalAlpha = 1;
@@ -489,14 +593,12 @@ export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
         rafRef.current = requestAnimationFrame(animate);
       };
 
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      rafRef.current = requestAnimationFrame(animate);
-
       const cleanup = () => {
         canvasEl.removeEventListener("pointermove", onPointerMove);
         canvasEl.removeEventListener("pointerenter", onPointerEnter);
         canvasEl.removeEventListener("pointerleave", onPointerLeave);
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        io.disconnect();
+        stopLoop();
       };
       (img as HTMLImageElement & { _cleanup?: () => void })._cleanup = cleanup;
     };

@@ -1,15 +1,15 @@
 "use client";
 import { cn } from "@/lib/utils";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 
 interface ShootingStar {
-  id: number;
   x: number;
   y: number;
   angle: number;
   scale: number;
   speed: number;
   distance: number;
+  el: SVGRectElement;
 }
 
 interface ShootingStarsProps {
@@ -41,6 +41,7 @@ const getRandomStartPoint = () => {
       return { x: 0, y: 0, angle: 45 };
   }
 };
+
 export const ShootingStars: React.FC<ShootingStarsProps> = ({
   minSpeed = 15,
   maxSpeed = 45,
@@ -52,89 +53,122 @@ export const ShootingStars: React.FC<ShootingStarsProps> = ({
   starHeight = 1,
   className,
 }) => {
-  const [stars, setStars] = useState<ShootingStar[]>([]);
   const svgRef = useRef<SVGSVGElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Stars are animated imperatively on the SVG so a moving star never
+  // triggers a React re-render.
   useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const stars: ShootingStar[] = [];
+    let rafId: number | null = null;
+    let spawnTimeout: ReturnType<typeof setTimeout> | null = null;
+    let visible = true;
+    let stopped = false;
+
+    const startLoop = () => {
+      if (rafId === null && visible && stars.length > 0) {
+        rafId = requestAnimationFrame(moveStars);
+      }
+    };
+
+    const stopLoop = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    };
+
+    const moveStars = () => {
+      rafId = null;
+      for (let i = stars.length - 1; i >= 0; i--) {
+        const star = stars[i];
+        star.x += star.speed * Math.cos((star.angle * Math.PI) / 180);
+        star.y += star.speed * Math.sin((star.angle * Math.PI) / 180);
+        star.distance += star.speed;
+        star.scale = 1 + star.distance / 80;
+
+        if (
+          star.x < -50 ||
+          star.x > window.innerWidth + 50 ||
+          star.y < -50 ||
+          star.y > window.innerHeight + 50
+        ) {
+          star.el.remove();
+          stars.splice(i, 1);
+          continue;
+        }
+
+        const width = starWidth * star.scale;
+        star.el.setAttribute("x", String(star.x));
+        star.el.setAttribute("y", String(star.y));
+        star.el.setAttribute("width", String(width));
+        star.el.setAttribute(
+          "transform",
+          `rotate(${star.angle}, ${star.x + width / 2}, ${
+            star.y + starHeight / 2
+          })`,
+        );
+      }
+      startLoop();
+    };
+
     const createStar = () => {
-      const { x, y, angle } = getRandomStartPoint();
-      const newStar: ShootingStar = {
-        id: Date.now() + Math.random(),
-        x,
-        y,
-        angle,
-        scale: 1,
-        speed: Math.random() * (maxSpeed - minSpeed) + minSpeed,
-        distance: 0,
-      };
-      
-      setStars(prev => [...prev, newStar]);
+      if (stopped) return;
+      if (visible) {
+        const { x, y, angle } = getRandomStartPoint();
+        const el = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "rect",
+        );
+        el.setAttribute("fill", "url(#gradient)");
+        el.setAttribute("height", String(starHeight));
+        svg.appendChild(el);
+        stars.push({
+          x,
+          y,
+          angle,
+          scale: 1,
+          speed: Math.random() * (maxSpeed - minSpeed) + minSpeed,
+          distance: 0,
+          el,
+        });
+        startLoop();
+      }
 
       const randomDelay = Math.random() * (maxDelay - minDelay) + minDelay;
-      timeoutRef.current = setTimeout(createStar, randomDelay);
+      spawnTimeout = setTimeout(createStar, randomDelay);
     };
+
+    // No new stars and no movement while the sky is scrolled off-screen.
+    const io = new IntersectionObserver((entries) => {
+      visible = entries[0]?.isIntersecting ?? true;
+      if (visible) {
+        startLoop();
+      } else {
+        stopLoop();
+      }
+    });
+    io.observe(svg);
 
     createStar();
 
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      stopped = true;
+      if (spawnTimeout) clearTimeout(spawnTimeout);
+      stopLoop();
+      io.disconnect();
+      for (const star of stars) star.el.remove();
+      stars.length = 0;
     };
-  }, [minSpeed, maxSpeed, minDelay, maxDelay]);
-
-  useEffect(() => {
-    const moveStars = () => {
-      setStars((prevStars) => {
-        return prevStars.map(star => {
-          const newX =
-            star.x +
-            star.speed * Math.cos((star.angle * Math.PI) / 180);
-          const newY =
-            star.y +
-            star.speed * Math.sin((star.angle * Math.PI) / 180);
-          const newDistance = star.distance + star.speed;
-          const newScale = 1 + newDistance / 80;
-          
-          return {
-            ...star,
-            x: newX,
-            y: newY,
-            distance: newDistance,
-            scale: newScale,
-          };
-        }).filter(star => 
-          star.x >= -50 &&
-          star.x <= window.innerWidth + 50 &&
-          star.y >= -50 &&
-          star.y <= window.innerHeight + 50
-        );
-      });
-    };
-
-    const animationFrame = requestAnimationFrame(moveStars);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [stars]);
+  }, [minSpeed, maxSpeed, minDelay, maxDelay, starWidth, starHeight]);
 
   return (
     <svg
       ref={svgRef}
       className={cn("w-full h-full absolute inset-0", className)}
     >
-      {stars.map((star) => (
-        <rect
-          key={star.id}
-          x={star.x}
-          y={star.y}
-          width={starWidth * star.scale}
-          height={starHeight}
-          fill="url(#gradient)"
-          transform={`rotate(${star.angle}, ${
-            star.x + (starWidth * star.scale) / 2
-          }, ${star.y + starHeight / 2})`}
-        />
-      ))}
       <defs>
         <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" style={{ stopColor: trailColor, stopOpacity: 0 }} />
