@@ -317,24 +317,24 @@ export function StockChart({
                   <stop offset="95%" stopColor="#6b7280" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis 
                 dataKey="formattedDate" 
-                stroke="hsl(var(--muted-foreground))"
+                stroke="var(--muted-foreground)"
                 fontSize={12}
                 tickFormatter={(value) => format(parseISO(value.split(',')[0] + ', 2024'), 'MMM d')}
               />
               <YAxis 
                 yAxisId="price"
                 orientation="right"
-                stroke="hsl(var(--muted-foreground))"
+                stroke="var(--muted-foreground)"
                 fontSize={12}
                 tickFormatter={(value) => `$${value.toFixed(0)}`}
               />
               <YAxis 
                 yAxisId="volume"
                 orientation="left"
-                stroke="hsl(var(--muted-foreground))"
+                stroke="var(--muted-foreground)"
                 fontSize={12}
                 tickFormatter={formatVolume}
               />
@@ -343,7 +343,7 @@ export function StockChart({
               <Bar 
                 yAxisId="volume"
                 dataKey="volume" 
-                fill="hsl(var(--muted))" 
+                fill="var(--muted)" 
                 opacity={0.3}
                 radius={[2, 2, 0, 0]}
               />
@@ -387,10 +387,10 @@ export function StockChart({
                     <stop offset="95%" stopColor="#6b7280" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis 
                   dataKey="formattedDate" 
-                  stroke="hsl(var(--muted-foreground))"
+                  stroke="var(--muted-foreground)"
                   fontSize={12}
                   tickFormatter={(value) => {
                     try {
@@ -401,7 +401,7 @@ export function StockChart({
                   }}
                 />
                 <YAxis 
-                  stroke="hsl(var(--muted-foreground))"
+                  stroke="var(--muted-foreground)"
                   fontSize={12}
                   tickFormatter={(value) => `$${value.toFixed(0)}`}
                 />
@@ -417,10 +417,10 @@ export function StockChart({
               </AreaChart>
             ) : (
               <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis 
                   dataKey="formattedDate" 
-                  stroke="hsl(var(--muted-foreground))"
+                  stroke="var(--muted-foreground)"
                   fontSize={12}
                   tickFormatter={(value) => {
                     try {
@@ -431,7 +431,7 @@ export function StockChart({
                   }}
                 />
                 <YAxis 
-                  stroke="hsl(var(--muted-foreground))"
+                  stroke="var(--muted-foreground)"
                   fontSize={12}
                   tickFormatter={(value) => `$${value.toFixed(0)}`}
                 />

@@ -71,17 +71,25 @@ function FeatureHighlights() {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
       {features.map((feature, index) => {
         const IconComponent = feature.icon;
         return (
-          <div key={index} className="flex items-center gap-3 p-4 bg-card border border-border rounded-lg">
-            <div className="flex-shrink-0 p-2 bg-primary/10 rounded-full">
-              <IconComponent className="h-5 w-5 text-primary" />
-            </div>
+          <div
+            key={index}
+            className="flex items-center gap-4 rounded-2xl bg-[#1d1d1f] p-5 transition-colors duration-300 hover:bg-[#232326]"
+          >
+            <IconComponent
+              className="h-6 w-6 flex-shrink-0 text-[#2997ff]"
+              strokeWidth={1.5}
+            />
             <div>
-              <h3 className="font-semibold text-sm">{feature.title}</h3>
-              <p className="text-xs text-foreground">{feature.description}</p>
+              <h3 className="text-[15px] font-semibold text-white">
+                {feature.title}
+              </h3>
+              <p className="text-[13px] text-neutral-400">
+                {feature.description}
+              </p>
             </div>
           </div>
         );
@@ -92,26 +100,31 @@ function FeatureHighlights() {
 
 export default function StockAnalysisPage() {
   return (
-    <div className="min-h-screen bg-background">
+    // `dark` scopes the app's dark theme tokens to this page so every child
+    // component (cards, chart, skeletons) renders in dark mode.
+    <div className="dark min-h-screen bg-black">
       {/* Main Content */}
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="max-w-7xl mx-auto">
+      <main className="container mx-auto px-6 py-16 md:py-24">
+        <div className="max-w-5xl mx-auto">
           {/* Page Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold tracking-tight mb-4">
-              AI-Powered Stock Analysis
+          <div className="text-center mb-14">
+            <p className="mb-4 text-base font-medium text-[#2997ff] md:text-lg">
+              AI-Powered
+            </p>
+            <h1 className="text-4xl font-semibold tracking-tight text-white md:text-6xl">
+              Stock Analysis
             </h1>
-            <p className="text-xl text-foreground max-w-3xl mx-auto">
-              Get comprehensive analysis of any publicly traded stock with real-time data, 
-              technical indicators, fundamental analysis, and AI-powered investment insights.
+            <p className="mx-auto mt-5 max-w-2xl text-xl font-normal text-neutral-400 md:text-2xl">
+              Real-time data, technical indicators, and intelligent insights
+              for any publicly traded stock.
             </p>
           </div>
 
           {/* Feature Highlights */}
           <FeatureHighlights />
-          
+
           {/* Stock Analysis Container */}
-          <StockAnalysisContainer 
+          <StockAnalysisContainer
             autoFocus={true}
             showWelcome={false}
             className="mb-12"

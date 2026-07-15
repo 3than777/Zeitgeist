@@ -224,7 +224,7 @@ export function StockAnalysisContainer({
               <button
                 key={ticker}
                 onClick={() => handleStockSearch(ticker)}
-                className="px-3 py-1 text-sm bg-muted text-foreground hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
+                className="px-3 py-1 text-sm bg-muted text-foreground hover:bg-accent hover:text-accent-foreground rounded-full transition-colors"
               >
                 {ticker}
               </button>
@@ -306,13 +306,13 @@ export function StockAnalysisContainer({
             <div className="flex items-center gap-3">
               <button
                 onClick={handleRetry}
-                className="px-4 py-2 text-sm bg-secondary hover:bg-secondary/80 rounded-md transition-colors"
+                className="px-4 py-2 text-sm bg-secondary hover:bg-secondary/80 rounded-full transition-colors"
               >
                 Refresh Analysis
               </button>
               <button
                 onClick={resetState}
-                className="px-4 py-2 text-sm border border-border hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
+                className="px-4 py-2 text-sm border border-border hover:bg-accent hover:text-accent-foreground rounded-full transition-colors"
               >
                 New Search
               </button>
@@ -372,13 +372,13 @@ export function StockAnalysisContainer({
             <div className="flex items-center gap-3">
               <button
                 onClick={handleRetry}
-                className="px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors"
+                className="px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 rounded-full transition-colors"
               >
                 Retry AI Analysis
               </button>
               <button
                 onClick={resetState}
-                className="px-4 py-2 text-sm border border-border hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
+                className="px-4 py-2 text-sm border border-border hover:bg-accent hover:text-accent-foreground rounded-full transition-colors"
               >
                 New Search
               </button>

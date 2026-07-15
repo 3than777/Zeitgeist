@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Search, TrendingUp, X, ChevronDown } from 'lucide-react';
+import { Search, TrendingUp, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { validateStockTicker } from '@/lib/stock-utils';
 
@@ -191,10 +191,10 @@ export function StockInput({
       <div className="relative">
         <div
           className={cn(
-            "relative flex items-center w-full rounded-lg border border-input bg-background text-sm ring-offset-background",
-            "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
-            validation.error && inputValue && "border-destructive focus-within:ring-destructive",
-            validation.isValid && "border-green-500 focus-within:ring-green-500",
+            "relative flex items-center w-full rounded-full border border-input bg-background text-sm",
+            "transition-colors focus-within:border-[#0071e3] focus-within:ring-2 focus-within:ring-[#0071e3]/40",
+            validation.error && inputValue && "border-destructive focus-within:border-destructive focus-within:ring-destructive/40",
+            validation.isValid && "border-[#0071e3]",
             disabled && "cursor-not-allowed opacity-50"
           )}
         >
@@ -213,7 +213,7 @@ export function StockInput({
             placeholder={placeholder}
             disabled={disabled || isLoading}
             className={cn(
-              "flex-1 px-10 py-3 bg-transparent placeholder:text-muted-foreground",
+              "flex-1 pl-10 pr-32 py-3 bg-transparent placeholder:text-muted-foreground placeholder:normal-case placeholder:tracking-normal",
               "focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
               "text-sm font-medium tracking-wide uppercase"
             )}
@@ -227,22 +227,12 @@ export function StockInput({
           {inputValue && !isLoading && (
             <button
               onClick={handleClear}
-              className="absolute right-12 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute right-28 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
               disabled={disabled}
               type="button"
             >
               <X className="h-4 w-4" />
             </button>
-          )}
-
-          {/* Dropdown Toggle (when suggestions are available) */}
-          {showSuggestions && (
-            <ChevronDown
-              className={cn(
-                "absolute right-3 h-4 w-4 text-muted-foreground transition-transform",
-                showDropdown && "rotate-180"
-              )}
-            />
           )}
         </div>
 
@@ -251,8 +241,8 @@ export function StockInput({
           onClick={handleSearch}
           disabled={!validation.isValid || isLoading || disabled}
           className={cn(
-            "absolute right-1 top-1 bottom-1 px-4 rounded-md",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "absolute right-1.5 top-1.5 bottom-1.5 px-5 rounded-full",
+            "bg-[#0071e3] text-white hover:bg-[#0077ed]",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             "transition-all duration-200 ease-in-out",
             "flex items-center justify-center gap-2",
@@ -280,7 +270,7 @@ export function StockInput({
         <div
           ref={dropdownRef}
           className={cn(
-            "absolute top-full mt-1 w-full bg-popover border border-border rounded-md shadow-md z-50",
+            "absolute top-full mt-2 w-full bg-popover border border-border rounded-2xl shadow-lg z-50",
             "max-h-60 overflow-y-auto"
           )}
         >

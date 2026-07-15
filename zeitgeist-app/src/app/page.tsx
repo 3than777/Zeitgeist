@@ -1,7 +1,6 @@
 import { ShootingStarsAndStarsBackgroundDemo } from "@/components/shooting-stars-background-demo";
 import { DottedGlowBackgroundDemoSecond } from "@/components/dotted-glow-background-demo";
 import { Carousel, Card } from "@/components/ui/apple-cards-carousel";
-import { CardSpotlight } from "@/components/ui/card-spotlight";
 import Image from "next/image";
 import Link from "next/link";
 import { TrendingUp, BarChart3, Brain, Target, Shield, Zap } from "lucide-react";
@@ -24,93 +23,85 @@ export default function Home() {
       </div>
 
       {/* Featured Stock Analysis Section */}
-      <div className="w-full py-20 px-8 md:px-16 bg-black">
-        <div className="max-w-6xl mx-auto text-center">
-          <div className="mb-8">
-            <span className="text-sm text-blue-400 font-semibold uppercase tracking-wide">
-              Featured Tool
-            </span>
-            <h2 className="text-3xl md:text-6xl font-bold text-neutral-100 mt-4 mb-6">
-              Smart Stock Analysis
-            </h2>
-            <p className="text-xl text-neutral-300 max-w-3xl mx-auto">
-              Make informed investment decisions with our AI-powered stock analysis platform. 
-              Get real-time data, technical insights, and intelligent recommendations instantly.
-            </p>
+      <section className="w-full bg-black px-6 py-28 md:py-36">
+        <div className="mx-auto max-w-5xl text-center">
+          <p className="mb-4 text-base font-medium text-[#2997ff] md:text-lg">
+            Featured Tool
+          </p>
+          <h2 className="text-4xl font-semibold tracking-tight text-white md:text-6xl">
+            Smart Stock Analysis
+          </h2>
+          <p className="mx-auto mt-5 max-w-2xl text-xl font-normal text-neutral-400 md:text-2xl">
+            Real-time data. Intelligent insights. Every decision, informed.
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            <Link
+              href="/stock-analysis"
+              className="rounded-full bg-[#0071e3] px-6 py-3 text-[17px] text-white transition-colors hover:bg-[#0077ed]"
+            >
+              Start analyzing
+            </Link>
+            <Link
+              href="/stock-analysis"
+              className="rounded-full border border-[#0071e3] px-6 py-3 text-[17px] text-[#2997ff] transition-colors hover:bg-[#0071e3]/10"
+            >
+              Learn more
+            </Link>
           </div>
-          
-          {/* Feature highlights */}
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
-            <CardSpotlight className="bg-black border border-neutral-700 rounded-2xl p-8">
-              <div className="flex justify-center mb-4 relative z-30">
-                <div className="p-4 bg-gradient-to-br from-emerald-400 to-green-600 rounded-full relative z-30">
-                  <TrendingUp className="h-8 w-8 text-white relative z-30" />
-                </div>
-              </div>
-              <h3 className="text-xl font-bold text-neutral-100 mb-3 relative z-20">
+
+          {/* Feature tiles */}
+          <div className="mt-24 grid gap-5 text-left md:grid-cols-3">
+            <div className="rounded-3xl bg-[#1d1d1f] p-8 transition-colors duration-300 hover:bg-[#232326]">
+              <TrendingUp className="h-8 w-8 text-[#2997ff]" strokeWidth={1.5} />
+              <h3 className="mt-6 text-xl font-semibold text-white">
                 Real-Time Analysis
               </h3>
-              <p className="text-neutral-400 relative z-20">
-                Live market data with instant AI analysis of price movements, trends, and patterns
+              <p className="mt-2 text-[15px] leading-relaxed text-neutral-400">
+                Live market data with instant AI analysis of price movements,
+                trends, and patterns.
               </p>
-            </CardSpotlight>
+            </div>
 
-            <CardSpotlight className="bg-black border border-neutral-700 rounded-2xl p-8">
-              <div className="flex justify-center mb-4 relative z-30">
-                <div className="p-4 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full relative z-30">
-                  <Brain className="h-8 w-8 text-white relative z-30" />
-                </div>
-              </div>
-              <h3 className="text-xl font-bold text-neutral-100 mb-3 relative z-20">
+            <div className="rounded-3xl bg-[#1d1d1f] p-8 transition-colors duration-300 hover:bg-[#232326]">
+              <Brain className="h-8 w-8 text-[#2997ff]" strokeWidth={1.5} />
+              <h3 className="mt-6 text-xl font-semibold text-white">
                 AI-Powered Insights
               </h3>
-              <p className="text-neutral-400 relative z-20">
-                Advanced machine learning models provide comprehensive fundamental and technical analysis
+              <p className="mt-2 text-[15px] leading-relaxed text-neutral-400">
+                Advanced models deliver comprehensive fundamental and technical
+                analysis in seconds.
               </p>
-            </CardSpotlight>
+            </div>
 
-            <CardSpotlight className="bg-black border border-neutral-700 rounded-2xl p-8">
-              <div className="flex justify-center mb-4 relative z-30">
-                <div className="p-4 bg-gradient-to-br from-purple-400 to-pink-600 rounded-full relative z-30">
-                  <Target className="h-8 w-8 text-white relative z-30" />
-                </div>
-              </div>
-              <h3 className="text-xl font-bold text-neutral-100 mb-3 relative z-20">
+            <div className="rounded-3xl bg-[#1d1d1f] p-8 transition-colors duration-300 hover:bg-[#232326]">
+              <Target className="h-8 w-8 text-[#2997ff]" strokeWidth={1.5} />
+              <h3 className="mt-6 text-xl font-semibold text-white">
                 Smart Recommendations
               </h3>
-              <p className="text-neutral-400 relative z-20">
-                Actionable investment recommendations with risk assessment and price targets
+              <p className="mt-2 text-[15px] leading-relaxed text-neutral-400">
+                Actionable recommendations with risk assessment and clear price
+                targets.
               </p>
-            </CardSpotlight>
+            </div>
           </div>
 
-          {/* CTA Button */}
-          <Link 
-            href="/stock-analysis"
-            className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-600 text-white font-bold px-12 py-4 rounded-2xl hover:from-blue-600 hover:via-purple-600 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-2xl"
-          >
-            <TrendingUp className="h-6 w-6" />
-            Start Analyzing Stocks
-          </Link>
-          
-          <div className="mt-6">
-            <p className="text-neutral-500 text-sm">
-              Try popular stocks: 
-              <span className="ml-2">
-                {['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'NVDA'].map((ticker, index) => (
-                  <Link 
-                    key={ticker}
-                    href="/stock-analysis"
-                    className="text-blue-400 hover:text-blue-300 transition-colors mx-1"
-                  >
-                    {ticker}{index < 4 ? ',' : ''}
-                  </Link>
-                ))}
-              </span>
-            </p>
-          </div>
+          <p className="mt-16 text-sm text-neutral-500">
+            Try popular stocks:{" "}
+            {["AAPL", "MSFT", "GOOGL", "TSLA", "NVDA"].map((ticker, index) => (
+              <Link
+                key={ticker}
+                href="/stock-analysis"
+                className="text-[#2997ff] transition-colors hover:text-white"
+              >
+                {ticker}
+                {index < 4 ? ", " : ""}
+              </Link>
+            ))}
+          </p>
         </div>
-      </div>
+      </section>
       
       {/* Dotted Glow Background Section */}
       <div className="relative h-screen w-screen bg-black">
