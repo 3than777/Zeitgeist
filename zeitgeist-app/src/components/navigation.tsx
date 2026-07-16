@@ -3,8 +3,74 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { TrendingUp, Menu, X, BarChart3, Home, Sparkles } from 'lucide-react';
+import { TrendingUp, Menu, X, BarChart3, Home, Sparkles, LogOut } from 'lucide-react';
+import type { User } from '@supabase/supabase-js';
 import { cn } from '@/lib/utils';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
+
+/** Sign-in link when logged out; avatar + sign-out menu when logged in. */
+function AuthControls() {
+  const [user, setUser] = useState<User | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) return;
+
+    supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (!isSupabaseConfigured) return null;
+
+  if (!user) {
+    return (
+      <Link
+        href="/login"
+        className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white/90 transition-colors hover:bg-white/10"
+      >
+        Sign in
+      </Link>
+    );
+  }
+
+  const initial = (user.email?.[0] ?? '?').toUpperCase();
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setMenuOpen((open) => !open)}
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0071e3] text-sm font-semibold text-white transition-transform hover:scale-105"
+        aria-label="Account menu"
+      >
+        {initial}
+      </button>
+      {menuOpen && (
+        <div className="absolute right-0 top-11 z-50 w-56 rounded-2xl border border-white/10 bg-[#1d1d1f] p-2 shadow-xl">
+          <p className="truncate px-3 py-2 text-xs text-neutral-400">
+            {user.email}
+          </p>
+          <button
+            onClick={async () => {
+              const supabase = createClient();
+              await supabase?.auth.signOut();
+              window.location.assign('/');
+            }}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-white transition-colors hover:bg-white/10"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface NavigationProps {
   variant?: 'default' | 'transparent';
@@ -135,6 +201,8 @@ export function Navigation({ variant = 'default', className }: NavigationProps) 
                 <Sparkles className="h-4 w-4" />
                 <span>Try AI Analysis</span>
               </Link>
+
+              <AuthControls />
             </div>
 
             {/* Mobile menu button */}
